@@ -1,0 +1,289 @@
+package com.ocean.protection.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ocean.protection.dto.CreatePostDTO;
+import com.ocean.protection.entity.ForumComment;
+import com.ocean.protection.entity.ForumLike;
+import com.ocean.protection.entity.ForumPost;
+import com.ocean.protection.entity.User;
+import com.ocean.protection.mapper.ForumCommentMapper;
+import com.ocean.protection.mapper.ForumLikeMapper;
+import com.ocean.protection.mapper.ForumPostMapper;
+import com.ocean.protection.mapper.UserMapper;
+import com.ocean.protection.service.ForumService;
+import com.ocean.protection.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ForumServiceImpl implements ForumService {
+
+    private static final Logger log = LoggerFactory.getLogger(ForumServiceImpl.class);
+
+    private final ForumPostMapper postMapper;
+    private final ForumCommentMapper commentMapper;
+    private final ForumLikeMapper likeMapper;
+    private final UserMapper userMapper;
+    private final ObjectMapper objectMapper;
+    private final UserService userService;
+
+    @Override
+    public List<ForumPost> getPosts(Long currentUserId) {
+        List<ForumPost> posts = postMapper.selectList(
+            new LambdaQueryWrapper<ForumPost>()
+                .orderByDesc(ForumPost::getCreatedTime)
+        );
+
+        for (ForumPost post : posts) {
+            // 设置用户信息
+            User user = userMapper.selectById(post.getUserId());
+            post.setUser(user);
+
+            // 设置评论信息，包括评论的用户信息
+            List<ForumComment> comments = getComments(post.getId());
+            post.setComments(comments);
+
+            // 设置点赞信息
+            ForumLike like = likeMapper.selectOne(
+                new LambdaQueryWrapper<ForumLike>()
+                    .eq(ForumLike::getPostId, post.getId())
+                    .eq(ForumLike::getUserId, currentUserId)
+            );
+            post.setIsLiked(like != null);
+        }
+
+        return posts;
+    }
+
+    @Override
+    public ForumPost getPost(Long id) {
+        ForumPost post = postMapper.selectById(id);
+        if (post != null) {
+            // 设置用户信息
+            User user = userMapper.selectById(post.getUserId());
+            post.setUser(user);
+
+            // 设置评论信息，使用 getComments 方法来确保评论包含用户信息
+            post.setComments(getComments(post.getId()));
+
+            // 设置点赞状态
+            LambdaQueryWrapper<ForumLike> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(ForumLike::getPostId, id)
+                   .eq(ForumLike::getUserId, getCurrentUserId());
+            post.setIsLiked(likeMapper.selectOne(wrapper) != null);
+        }
+        return post;
+    }
+
+    @Override
+    @Transactional
+    public ForumPost createPost(CreatePostDTO createPostDTO, Long userId) {
+        ForumPost post = new ForumPost();
+        post.setUserId(userId);
+        post.setTitle(createPostDTO.getTitle());
+        post.setContent(createPostDTO.getContent());
+        post.setViewCount(0);
+        post.setLikeCount(0);
+        post.setCommentCount(0);
+        
+        postMapper.insert(post);
+
+        // 设置用户信息
+        User user = userMapper.selectById(userId);
+        post.setUser(user);
+        
+        return post;
+    }
+
+    @Override
+    @Transactional
+    public ForumPost updatePost(Long id, CreatePostDTO updatePostDTO, Long userId) {
+        // 检查帖子是否存在
+        ForumPost post = postMapper.selectById(id);
+        if (post == null) {
+            throw new RuntimeException("帖子不存在");
+        }
+        
+        // 检查是否有权限修改
+        if (!post.getUserId().equals(userId)) {
+            throw new RuntimeException("无权修改此帖子");
+        }
+        
+        // 更新帖子内容
+        post.setTitle(updatePostDTO.getTitle());
+        post.setContent(updatePostDTO.getContent());
+        if (updatePostDTO.getTag() != null) {
+            post.setTag(updatePostDTO.getTag());
+        }
+        
+        // 处理图片
+        if (updatePostDTO.getImages() != null && !updatePostDTO.getImages().isEmpty()) {
+            try {
+                post.setImagesJson(objectMapper.writeValueAsString(updatePostDTO.getImages()));
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("图片处理失败", e);
+            }
+        }
+        
+        // 更新数据库
+        postMapper.updateById(post);
+        
+        // 重新获取完整的帖子信息
+        post = getPost(id);
+        
+        // 设置用户信息
+        User user = userMapper.selectById(post.getUserId());
+        post.setUser(user);
+        
+        return post;
+    }
+
+    @Override
+    @Transactional
+    public void deletePost(Long id, Long userId) {
+        // 检查帖子是否存在
+        ForumPost post = postMapper.selectById(id);
+        if (post == null) {
+            throw new RuntimeException("帖子不存在");
+        }
+        
+        // 检查是否有权限删除
+        if (!post.getUserId().equals(userId)) {
+            throw new RuntimeException("无权删除此帖子");
+        }
+        
+        // 删除相关的评论
+        LambdaQueryWrapper<ForumComment> commentWrapper = new LambdaQueryWrapper<>();
+        commentWrapper.eq(ForumComment::getPostId, id);
+        commentMapper.delete(commentWrapper);
+        
+        // 删除相关的点赞
+        LambdaQueryWrapper<ForumLike> likeWrapper = new LambdaQueryWrapper<>();
+        likeWrapper.eq(ForumLike::getPostId, id);
+        likeMapper.delete(likeWrapper);
+        
+        // 删除帖子
+        postMapper.deleteById(id);
+    }
+
+    @Override
+    public String uploadImage(String imageBase64) {
+        // TODO: 实现图片上传逻辑
+        return null;
+    }
+
+    @Override
+    @Transactional
+    public void addComment(Long postId, String content, Long userId) {
+        try {
+            // 创建评论
+            ForumComment comment = new ForumComment();
+            comment.setPostId(postId);
+            comment.setUserId(userId);
+            comment.setContent(content.trim());
+            
+            // 设置创建时间和更新时间
+            comment.setCreatedTime(LocalDateTime.now());
+            comment.setDeleted(false);
+            
+            // 保存评论
+            commentMapper.insert(comment);
+            log.info("Created new comment for post {}: {}", postId, comment);
+
+            // 更新帖子评论数
+            ForumPost post = postMapper.selectById(postId);
+            if (post != null) {
+                post.setCommentCount(post.getCommentCount() + 1);
+                postMapper.updateById(post);
+                log.info("Updated comment count for post {}: {}", postId, post.getCommentCount());
+            }
+        } catch (Exception e) {
+            log.error("Error adding comment to post {}: {}", postId, e.getMessage(), e);
+            throw new RuntimeException("添加评论失败", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteComment(Long postId, Long commentId, Long userId) {
+        ForumComment comment = commentMapper.selectById(commentId);
+        if (comment == null || !comment.getUserId().equals(userId)) {
+            throw new RuntimeException("无权删除此评论");
+        }
+        commentMapper.deleteById(commentId);
+    }
+
+    @Override
+    @Transactional
+    public ForumPost toggleLike(Long postId, Long userId) {
+        LambdaQueryWrapper<ForumLike> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ForumLike::getPostId, postId)
+               .eq(ForumLike::getUserId, userId);
+        
+        ForumLike like = likeMapper.selectOne(wrapper);
+        ForumPost post = postMapper.selectById(postId);
+        
+        if (like == null) {
+            // 添加点赞
+            like = new ForumLike();
+            like.setPostId(postId);
+            like.setUserId(userId);
+            likeMapper.insert(like);
+            
+            post.setLikeCount(post.getLikeCount() + 1);
+            post.setIsLiked(true);
+        } else {
+            // 取消点赞
+            likeMapper.delete(wrapper);
+            post.setLikeCount(post.getLikeCount() - 1);
+            post.setIsLiked(false);
+        }
+        
+        postMapper.updateById(post);
+
+        // 使用 getPost 方法获取完整的帖子信息，包括评论
+        return getPost(postId);
+    }
+
+    @Override
+    public List<ForumComment> getComments(Long postId) {
+        try {
+            LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(ForumComment::getPostId, postId)
+                  .eq(ForumComment::getDeleted, false)
+                  .orderByDesc(ForumComment::getCreatedTime);
+                  
+            List<ForumComment> comments = commentMapper.selectList(wrapper);
+            
+            // 填充用户信息
+            if (comments != null && !comments.isEmpty()) {
+                for (ForumComment comment : comments) {
+                    User user = userMapper.selectById(comment.getUserId());
+                    comment.setUser(user);
+                }
+            }
+            
+            return comments;
+        } catch (Exception e) {
+            log.error("Error getting comments for post {}: ", postId, e);
+            throw new RuntimeException("获取评论失败");
+        }
+    }
+
+    private Long getCurrentUserId() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            throw new RuntimeException("用户未登录");
+        }
+        return currentUser.getId();
+    }
+} 

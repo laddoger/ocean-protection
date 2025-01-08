@@ -1,0 +1,29 @@
+-- 帖子表
+CREATE TABLE post (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    title VARCHAR(100) NOT NULL COMMENT '标题',
+    content TEXT NOT NULL COMMENT '内容',
+    tag VARCHAR(50) COMMENT '标签',
+    images_json TEXT COMMENT '图片JSON',
+    view_count INT DEFAULT 0 COMMENT '浏览次数',
+    like_count INT DEFAULT 0 COMMENT '点赞数',
+    comment_count INT DEFAULT 0 COMMENT '评论数',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES user(id)
+);
+
+-- 帖子评论表
+CREATE TABLE post_comment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    post_id BIGINT NOT NULL COMMENT '帖子ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    content TEXT NOT NULL COMMENT '评论内容',
+    created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (post_id) REFERENCES post(id),
+    FOREIGN KEY (user_id) REFERENCES user(id)
+); 
