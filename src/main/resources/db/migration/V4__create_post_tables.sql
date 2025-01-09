@@ -1,5 +1,5 @@
 -- 帖子表
-CREATE TABLE post (
+CREATE TABLE forum_post (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     user_id BIGINT NOT NULL COMMENT '用户ID',
     title VARCHAR(100) NOT NULL COMMENT '标题',

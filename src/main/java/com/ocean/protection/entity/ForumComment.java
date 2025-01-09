@@ -7,13 +7,15 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@TableName("forum_comment")
+@TableName("post_comment")
 public class ForumComment {
     @TableId(type = IdType.AUTO)
     private Long id;
     
+    @TableField("post_id")
     private Long postId;
     
+    @TableField("user_id")
     private Long userId;
     
     private String content;
@@ -21,12 +23,9 @@ public class ForumComment {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedTime;
-    
     @TableLogic
     private Boolean deleted;
-
+    
     @TableField(exist = false)
     private User user;
 } 

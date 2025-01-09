@@ -8,19 +8,28 @@ import java.util.List;
 
 @Getter
 @Setter
-@TableName("forum_post")
+@TableName(value = "post")
 public class ForumPost {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
+    @TableField("user_id")
     private Long userId;
+    
+    @TableField("title")
     private String title;
+    
+    @TableField("content")
     private String content;
-    private String tag;
-    private String imagesJson;
+    
+    @TableField("view_count")
     private Integer viewCount;
+    
+    @TableField("like_count")
     private Integer likeCount;
+    
+    @TableField("comment_count")
     private Integer commentCount;
-    private Boolean isLiked;
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
@@ -36,4 +45,13 @@ public class ForumPost {
     
     @TableField(exist = false)
     private List<ForumComment> comments;
+    
+    @TableField(exist = false)
+    private String tag;
+    
+    @TableField(exist = false)
+    private String imagesJson;
+    
+    @TableField(exist = false)
+    private Boolean isLiked;
 } 

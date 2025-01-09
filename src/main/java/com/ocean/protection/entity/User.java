@@ -13,9 +13,17 @@ public class User {
     private Long id;
     private String username;
     private String password;
+    
+    @TableField(exist = false)
     private String gender;
+    
+    @TableField(exist = false)
     private Integer age;
+    
+    @TableField(exist = false)
     private String address;
+    
+    @TableField(exist = false)
     private String avatar;
     
     @TableField(fill = FieldFill.INSERT)

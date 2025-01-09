@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -38,30 +39,32 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     public List<ForumPost> getPosts(Long currentUserId) {
-        List<ForumPost> posts = postMapper.selectList(
-            new LambdaQueryWrapper<ForumPost>()
-                .orderByDesc(ForumPost::getCreatedTime)
-        );
-
-        for (ForumPost post : posts) {
-            // 设置用户信息
-            User user = userMapper.selectById(post.getUserId());
-            post.setUser(user);
-
-            // 设置评论信息，包括评论的用户信息
-            List<ForumComment> comments = getComments(post.getId());
-            post.setComments(comments);
-
-            // 设置点赞信息
-            ForumLike like = likeMapper.selectOne(
-                new LambdaQueryWrapper<ForumLike>()
-                    .eq(ForumLike::getPostId, post.getId())
-                    .eq(ForumLike::getUserId, currentUserId)
-            );
-            post.setIsLiked(like != null);
+        try {
+            // 使用自定义的查询方法而不是 MyBatis-Plus 的默认方法
+            List<ForumPost> posts = postMapper.selectAllPosts();
+            
+            if (posts != null && !posts.isEmpty()) {
+                for (ForumPost post : posts) {
+                    // 填充用户信息
+                    User user = userMapper.selectById(post.getUserId());
+                    post.setUser(user);
+                    
+                    // 获取评论
+                    List<ForumComment> comments = getComments(post.getId());
+                    post.setComments(comments);
+                    
+                    // 设置默认值
+                    post.setTag("");
+                    post.setImagesJson("");
+                    post.setIsLiked(false);
+                }
+            }
+            
+            return posts;
+        } catch (Exception e) {
+            log.error("获取帖子列表失败", e);
+            throw new RuntimeException("获取帖子列表失败");
         }
-
-        return posts;
     }
 
     @Override
@@ -183,43 +186,67 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     @Transactional
-    public void addComment(Long postId, String content, Long userId) {
+    public ForumComment addComment(Long postId, Long userId, String content) {
         try {
-            // 创建评论
+            // 创建新评论
             ForumComment comment = new ForumComment();
             comment.setPostId(postId);
             comment.setUserId(userId);
-            comment.setContent(content.trim());
-            
-            // 设置创建时间和更新时间
-            comment.setCreatedTime(LocalDateTime.now());
-            comment.setDeleted(false);
-            
-            // 保存评论
+            comment.setContent(content);
             commentMapper.insert(comment);
-            log.info("Created new comment for post {}: {}", postId, comment);
 
-            // 更新帖子评论数
+            // 更新帖子的评论数
             ForumPost post = postMapper.selectById(postId);
             if (post != null) {
-                post.setCommentCount(post.getCommentCount() + 1);
+                // 获取实际的评论数
+                LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(ForumComment::getPostId, postId)
+                      .eq(ForumComment::getDeleted, false);
+                Integer commentCount = commentMapper.selectCount(wrapper);
+                
+                // 更新帖子的评论数
+                post.setCommentCount(commentCount);
                 postMapper.updateById(post);
-                log.info("Updated comment count for post {}: {}", postId, post.getCommentCount());
             }
+
+            // 设置评论的用户信息
+            User user = userMapper.selectById(userId);
+            comment.setUser(user);
+
+            return comment;
         } catch (Exception e) {
-            log.error("Error adding comment to post {}: {}", postId, e.getMessage(), e);
-            throw new RuntimeException("添加评论失败", e);
+            log.error("添加评论失败", e);
+            throw new RuntimeException("添加评论失败");
         }
     }
 
     @Override
     @Transactional
-    public void deleteComment(Long postId, Long commentId, Long userId) {
-        ForumComment comment = commentMapper.selectById(commentId);
-        if (comment == null || !comment.getUserId().equals(userId)) {
-            throw new RuntimeException("无权删除此评论");
+    public void deleteComment(Long commentId, Long userId) {
+        try {
+            ForumComment comment = commentMapper.selectById(commentId);
+            if (comment != null) {
+                // 逻辑删除评论
+                commentMapper.deleteById(commentId);
+
+                // 更新帖子的评论数
+                ForumPost post = postMapper.selectById(comment.getPostId());
+                if (post != null) {
+                    // 获取实际的评论数
+                    LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
+                    wrapper.eq(ForumComment::getPostId, comment.getPostId())
+                          .eq(ForumComment::getDeleted, false);
+                    Integer commentCount = commentMapper.selectCount(wrapper);
+                    
+                    // 更新帖子的评论数
+                    post.setCommentCount(commentCount);
+                    postMapper.updateById(post);
+                }
+            }
+        } catch (Exception e) {
+            log.error("删除评论失败", e);
+            throw new RuntimeException("删除评论失败");
         }
-        commentMapper.deleteById(commentId);
     }
 
     @Override
@@ -257,12 +284,8 @@ public class ForumServiceImpl implements ForumService {
     @Override
     public List<ForumComment> getComments(Long postId) {
         try {
-            LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(ForumComment::getPostId, postId)
-                  .eq(ForumComment::getDeleted, false)
-                  .orderByDesc(ForumComment::getCreatedTime);
-                  
-            List<ForumComment> comments = commentMapper.selectList(wrapper);
+            // 使用自定义的查询方法
+            List<ForumComment> comments = commentMapper.selectByPostId(postId);
             
             // 填充用户信息
             if (comments != null && !comments.isEmpty()) {
@@ -274,8 +297,27 @@ public class ForumServiceImpl implements ForumService {
             
             return comments;
         } catch (Exception e) {
-            log.error("Error getting comments for post {}: ", postId, e);
-            throw new RuntimeException("获取评论失败");
+            log.error("Error getting comments for post {}: {}", postId, e.getMessage());
+            return new ArrayList<>();  // 返回空列表而不是抛出异常
+        }
+    }
+
+    @Transactional
+    public void updateAllPostCommentCounts() {
+        try {
+            List<ForumPost> posts = postMapper.selectList(null);
+            for (ForumPost post : posts) {
+                LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
+                wrapper.eq(ForumComment::getPostId, post.getId())
+                      .eq(ForumComment::getDeleted, false);
+                Integer commentCount = commentMapper.selectCount(wrapper);
+                
+                post.setCommentCount(commentCount);
+                postMapper.updateById(post);
+            }
+        } catch (Exception e) {
+            log.error("更新帖子评论数失败", e);
+            throw new RuntimeException("更新帖子评论数失败");
         }
     }
 
