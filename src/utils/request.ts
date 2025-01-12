@@ -7,13 +7,14 @@ const request = axios.create({
 
 // 请求拦截器
 request.interceptors.request.use(
-  (config) => {
-    console.log('Request URL:', config.url)
-    console.log('Request Method:', config.method)
-    console.log('Request Data:', config.data)
+  config => {
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
   }
 )

@@ -32,13 +32,30 @@ public class UserController {
         return Result.success(userService.login(loginDTO));
     }
 
+    @PutMapping("/user/info")
+    public Result<User> updateUserInfo(@RequestBody Map<String, Object> params) {
+        try {
+            Long userId = getCurrentUserId();
+            String gender = (String) params.get("gender");
+            Integer age = params.get("age") != null ? 
+                Integer.parseInt(params.get("age").toString()) : null;
+            String address = (String) params.get("address");
+            
+            User updatedUser = userService.updateUserInfo(userId, gender, age, address);
+            return Result.success(updatedUser);
+        } catch (Exception e) {
+            return Result.error("更新用户信息失败: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/user/info")
     public Result<User> getUserInfo() {
-        User user = userService.getCurrentUser();
-        if (user == null) {
-            throw new RuntimeException("用户未登录");
+        try {
+            User user = userService.getCurrentUser();
+            return Result.success(user);
+        } catch (Exception e) {
+            return Result.error("获取用户信息失败: " + e.getMessage());
         }
-        return Result.success(user);
     }
 
     @PostMapping("/logout")
@@ -77,30 +94,11 @@ public class UserController {
         return Result.success(null);
     }
 
-    @PutMapping("/info")
-    public ResponseEntity<User> updateUserInfo(@RequestBody Map<String, Object> params) {
-        try {
-            Long userId = getCurrentUserId();
-            String gender = (String) params.get("gender");
-            Integer age = params.get("age") != null ? 
-                Integer.parseInt(params.get("age").toString()) : null;
-            String address = (String) params.get("address");
-            
-            User updatedUser = userService.updateUserInfo(userId, gender, age, address);
-            return ResponseEntity.ok(updatedUser);
-        } catch (Exception e) {
-            throw new RuntimeException("更新用户信息失败: " + e.getMessage());
+    private Long getCurrentUserId() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            throw new RuntimeException("用户未登录");
         }
-    }
-
-    @GetMapping("/info")
-    public ResponseEntity<User> getUserInfo() {
-        try {
-            Long userId = getCurrentUserId();
-            User user = userService.getUserById(userId);
-            return ResponseEntity.ok(user);
-        } catch (Exception e) {
-            throw new RuntimeException("获取用户信息失败: " + e.getMessage());
-        }
+        return currentUser.getId();
     }
 } 

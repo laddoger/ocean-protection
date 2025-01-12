@@ -50,20 +50,29 @@ public class UserServiceImpl implements UserService {
     public LoginResponseDTO login(LoginDTO loginDTO) {
         log.info("尝试登录用户: {}", loginDTO.getUsername());
         
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUsername, loginDTO.getUsername());
+        // 查询用户，确保未被删除
+        User user = userMapper.selectOne(
+            new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, loginDTO.getUsername())
+                .eq(User::getDeleted, false)
+        );
         
-        User user = userMapper.selectOne(wrapper);
         log.info("查询到的用户: {}", user);
         
+        // 简单的明文密码比较
         if (user == null || !loginDTO.getPassword().equals(user.getPassword())) {
             throw new RuntimeException("用户名或密码错误");
         }
         
+        // 生成 token
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-        log.info("生成的token: {}", token);
         
-        return LoginResponseDTO.of(token, user);
+        // 构建响应
+        LoginResponseDTO response = new LoginResponseDTO();
+        response.setToken(token);
+        response.setUser(user);
+        
+        return response;
     }
 
     @Override
@@ -175,12 +184,21 @@ public class UserServiceImpl implements UserService {
         if (age != null && (age < 0 || age > 150)) {
             throw new RuntimeException("年龄必须在0-150之间");
         }
-        if (gender != null && !Arrays.asList("男", "女", "未设置").contains(gender)) {
-            throw new RuntimeException("性别只能是'男'、'女'或'未设置'");
+        if (gender != null && !Arrays.asList("MALE", "FEMALE", "未设置").contains(gender)) {
+            throw new RuntimeException("无效的性别值");
         }
         
         // 只更新允许修改的字段
-        if (gender != null) user.setGender(gender);
+        if (gender != null) {
+            // 转换性别显示
+            if ("MALE".equals(gender)) {
+                user.setGender("男");
+            } else if ("FEMALE".equals(gender)) {
+                user.setGender("女");
+            } else {
+                user.setGender("未设置");
+            }
+        }
         if (age != null) user.setAge(age);
         if (address != null) user.setAddress(address);
         

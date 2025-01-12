@@ -27,5 +27,12 @@ export const userApi = {
       return response.data.data
     }
     throw new Error(response.data.message || '登录失败')
+  },
+
+  getUserInfo: async () => {
+    return request({
+      url: '/auth/user/info',
+      method: 'get'
+    })
   }
 } 
