@@ -31,6 +31,7 @@ import com.ocean.protection.mapper.VolunteerActivityMapper;
 import org.springframework.beans.BeanUtils;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -160,5 +161,30 @@ public class UserServiceImpl implements UserService {
         user.setAddress(updateProfileDTO.getAddress());
 
         userMapper.updateById(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateUserInfo(Long userId, String gender, Integer age, String address) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        
+        // 验证数据
+        if (age != null && (age < 0 || age > 150)) {
+            throw new RuntimeException("年龄必须在0-150之间");
+        }
+        if (gender != null && !Arrays.asList("男", "女", "未设置").contains(gender)) {
+            throw new RuntimeException("性别只能是'男'、'女'或'未设置'");
+        }
+        
+        // 只更新允许修改的字段
+        if (gender != null) user.setGender(gender);
+        if (age != null) user.setAge(age);
+        if (address != null) user.setAddress(address);
+        
+        userMapper.updateById(user);
+        return user;
     }
 } 

@@ -14,14 +14,9 @@ public class User {
     private String username;
     private String password;
     
-    @TableField(exist = false)
-    private String gender;
-    
-    @TableField(exist = false)
-    private Integer age;
-    
-    @TableField(exist = false)
-    private String address;
+    private String gender = "未设置";
+    private Integer age = 0;
+    private String address = "未设置";
     
     @TableField(exist = false)
     private String avatar;

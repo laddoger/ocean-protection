@@ -9,8 +9,11 @@ import com.ocean.protection.dto.UpdateProfileDTO;
 import com.ocean.protection.entity.User;
 import com.ocean.protection.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -72,5 +75,32 @@ public class UserController {
         }
         userService.updateProfile(currentUser.getId(), updateProfileDTO);
         return Result.success(null);
+    }
+
+    @PutMapping("/info")
+    public ResponseEntity<User> updateUserInfo(@RequestBody Map<String, Object> params) {
+        try {
+            Long userId = getCurrentUserId();
+            String gender = (String) params.get("gender");
+            Integer age = params.get("age") != null ? 
+                Integer.parseInt(params.get("age").toString()) : null;
+            String address = (String) params.get("address");
+            
+            User updatedUser = userService.updateUserInfo(userId, gender, age, address);
+            return ResponseEntity.ok(updatedUser);
+        } catch (Exception e) {
+            throw new RuntimeException("更新用户信息失败: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/info")
+    public ResponseEntity<User> getUserInfo() {
+        try {
+            Long userId = getCurrentUserId();
+            User user = userService.getUserById(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            throw new RuntimeException("获取用户信息失败: " + e.getMessage());
+        }
     }
 } 

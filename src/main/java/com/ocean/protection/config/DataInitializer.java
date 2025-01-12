@@ -2,6 +2,7 @@ package com.ocean.protection.config;
 
 import com.ocean.protection.entity.OceanPollutant;
 import com.ocean.protection.mapper.OceanPollutantMapper;
+import com.ocean.protection.service.ForumService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -17,7 +18,7 @@ import java.util.List;
 public class DataInitializer implements CommandLineRunner {
 
     private final OceanPollutantMapper pollutantMapper;
-    private final ForumServiceImpl forumService;
+    private final ForumService forumService;
 
     @Override
     public void run(String... args) {
@@ -61,7 +62,12 @@ public class DataInitializer implements CommandLineRunner {
         log.info("污染物数据初始化完成");
 
         // 更新所有帖子的评论数
-        forumService.updateAllPostCommentCounts();
+        try {
+            forumService.updateAllPostCommentCounts();
+            log.info("帖子评论数更新完成");
+        } catch (Exception e) {
+            log.error("更新帖子评论数失败", e);
+        }
     }
 
     private OceanPollutant createPollutant(String name, String category, 

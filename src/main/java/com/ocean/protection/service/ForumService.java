@@ -16,4 +16,8 @@ public interface ForumService {
     void deleteComment(Long postId, Long commentId, Long userId);
     ForumPost toggleLike(Long postId, Long userId);
     List<ForumComment> getComments(Long postId);
+    /**
+     * 更新所有帖子的评论数
+     */
+    void updateAllPostCommentCounts();
 } 

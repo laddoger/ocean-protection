@@ -13,4 +13,13 @@ public interface UserService {
     User getCurrentUser();
     UserProfileDTO getUserProfile(Long userId);
     void updateProfile(Long userId, UpdateProfileDTO updateProfileDTO);
+    /**
+     * 更新用户信息
+     * @param userId 用户ID
+     * @param gender 性别
+     * @param age 年龄
+     * @param address 地址
+     * @return 更新后的用户信息
+     */
+    User updateUserInfo(Long userId, String gender, Integer age, String address);
 } 
