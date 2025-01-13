@@ -34,5 +34,21 @@ export const userApi = {
       url: '/auth/user/info',
       method: 'get'
     })
+  },
+
+  updateProfile: async (data: any) => {
+    return request({
+      url: '/api/auth/profile',
+      method: 'put',
+      data
+    })
+  },
+
+  updateUserInfo: async (data: any) => {
+    return request({
+      url: '/api/auth/user/info',
+      method: 'put',
+      data
+    })
   }
 } 

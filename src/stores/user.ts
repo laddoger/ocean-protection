@@ -1,41 +1,38 @@
 import { defineStore } from 'pinia'
-import { login as loginApi, getUserInfo } from '@/api/user'
+import { userApi } from '@/api/user'
 
 export const useUserStore = defineStore('user', {
     state: () => ({
-        token: localStorage.getItem('token') || '',
-        userInfo: null
+        userInfo: null,
+        token: localStorage.getItem('token') || ''
     }),
     actions: {
-        async login(loginForm: { username: string; password: string }) {
+        async updateProfile(profileData: any) {
             try {
-                const response = await loginApi(loginForm)
-                const { token } = response.data.data
-                localStorage.setItem('token', token)
-                this.token = token
-                await this.loadUserInfo()
-                return response
+                const response = await userApi.updateProfile(profileData)
+                if (response.data.code === 200) {
+                    await this.loadUserInfo()  // 更新后重新加载用户信息
+                    return response.data
+                }
+                throw new Error(response.data.message || '更新失败')
             } catch (error) {
-                console.error('Login error:', error)
-                this.logout()
+                console.error('Update profile error:', error)
                 throw error
             }
         },
-        async loadUserInfo() {
+
+        async updateUserInfo(userInfo: any) {
             try {
-                console.log('Loading user info...')
-                const response = await getUserInfo()
-                this.userInfo = response.data.data
+                const response = await userApi.updateUserInfo(userInfo)
+                if (response.data.code === 200) {
+                    await this.loadUserInfo()  // 更新后重新加载用户信息
+                    return response.data
+                }
+                throw new Error(response.data.message || '更新失败')
             } catch (error) {
-                console.error('Get user info error:', error)
+                console.error('Update user info error:', error)
                 throw error
             }
-        },
-        logout() {
-            console.log('Logging out...')
-            localStorage.removeItem('token')
-            this.token = ''
-            this.userInfo = null
         }
     }
 }) 
