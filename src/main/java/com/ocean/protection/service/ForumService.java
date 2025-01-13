@@ -20,4 +20,5 @@ public interface ForumService {
      * 更新所有帖子的评论数
      */
     void updateAllPostCommentCounts();
+    List<ForumPost> getUserPosts(Long userId);
 } 

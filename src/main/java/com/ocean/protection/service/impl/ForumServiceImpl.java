@@ -17,6 +17,8 @@ import com.ocean.protection.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +37,9 @@ public class ForumServiceImpl implements ForumService {
     private final ForumLikeMapper likeMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
-    private final UserService userService;
+    
+    @Autowired
+    private ApplicationContext applicationContext;
 
     @Override
     public List<ForumPost> getPosts(Long currentUserId) {
@@ -321,7 +325,30 @@ public class ForumServiceImpl implements ForumService {
         }
     }
 
+    @Override
+    public List<ForumPost> getUserPosts(Long userId) {
+        LambdaQueryWrapper<ForumPost> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ForumPost::getUserId, userId)
+              .eq(ForumPost::getDeleted, false)
+              .orderByDesc(ForumPost::getCreatedTime);
+              
+        List<ForumPost> posts = postMapper.selectList(wrapper);
+        
+        // 填充用户信息和评论
+        if (posts != null && !posts.isEmpty()) {
+            for (ForumPost post : posts) {
+                User user = userMapper.selectById(post.getUserId());
+                post.setUser(user);
+                post.setComments(getComments(post.getId()));
+            }
+        }
+        
+        return posts;
+    }
+
     private Long getCurrentUserId() {
+        // 通过 ApplicationContext 获取 UserService
+        UserService userService = applicationContext.getBean(UserService.class);
         User currentUser = userService.getCurrentUser();
         if (currentUser == null) {
             throw new RuntimeException("用户未登录");

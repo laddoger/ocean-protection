@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -252,6 +254,75 @@ public class VolunteerServiceImpl implements VolunteerService {
             log.error("Error disbanding organization {}: {}", organizationId, e.getMessage());
             throw new RuntimeException("解散组织失败：" + e.getMessage());
         }
+    }
+
+    @Override
+    public List<VolunteerOrganization> getUserOrganizations(Long userId) {
+        log.info("Getting organizations for user: {}", userId);
+        
+        // 获取用户加入的组织ID列表
+        List<Long> organizationIds = memberMapper.selectList(
+            new LambdaQueryWrapper<OrganizationMember>()
+                .eq(OrganizationMember::getUserId, userId)
+                .eq(OrganizationMember::getDeleted, false)
+        ).stream().map(OrganizationMember::getOrganizationId).collect(Collectors.toList());
+        
+        log.info("Found organization IDs: {}", organizationIds);
+        
+        if (organizationIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 获取组织详细信息
+        List<VolunteerOrganization> organizations = organizationMapper.selectList(
+            new LambdaQueryWrapper<VolunteerOrganization>()
+                .in(VolunteerOrganization::getId, organizationIds)
+                .eq(VolunteerOrganization::getDeleted, false)
+        );
+        
+        // 填充创建者信息
+        for (VolunteerOrganization org : organizations) {
+            org.setFounder(userMapper.selectById(org.getFounderId()));
+        }
+        
+        log.info("Found organizations: {}", organizations.size());
+        return organizations;
+    }
+
+    @Override
+    public List<VolunteerActivity> getUserActivities(Long userId) {
+        log.info("Getting activities for user: {}", userId);
+        
+        // 获取用户参加的活动ID列表
+        List<Long> activityIds = participantMapper.selectList(
+            new LambdaQueryWrapper<ActivityParticipant>()
+                .eq(ActivityParticipant::getUserId, userId)
+                .eq(ActivityParticipant::getDeleted, false)
+        ).stream().map(ActivityParticipant::getActivityId).collect(Collectors.toList());
+        
+        log.info("Found activity IDs: {}", activityIds);
+        
+        if (activityIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 获取活动详细信息
+        List<VolunteerActivity> activities = activityMapper.selectList(
+            new LambdaQueryWrapper<VolunteerActivity>()
+                .in(VolunteerActivity::getId, activityIds)
+                .eq(VolunteerActivity::getDeleted, false)
+        );
+        
+        log.info("Found activities: {}", activities.size());
+        
+        // 填充组织信息
+        for (VolunteerActivity activity : activities) {
+            activity.setOrganization(
+                organizationMapper.selectById(activity.getOrganizationId())
+            );
+        }
+        
+        return activities;
     }
 
     private boolean isMember(Long organizationId, Long userId) {

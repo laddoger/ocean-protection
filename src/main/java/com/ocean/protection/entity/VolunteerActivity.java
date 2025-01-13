@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -32,4 +33,7 @@ public class VolunteerActivity {
     
     @TableField(exist = false)
     private VolunteerOrganization organization;
+    
+    @TableField(exist = false)
+    private List<User> participants;
 } 

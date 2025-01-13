@@ -1,27 +1,26 @@
--- 志愿组织表
-CREATE TABLE volunteer_organization (
+-- 检查表是否存在，如果不存在则创建
+CREATE TABLE IF NOT EXISTS volunteer_organization (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL COMMENT '组织名称',
-    description TEXT COMMENT '组织描述',
-    founder_id BIGINT NOT NULL COMMENT '创建者ID',
-    member_count INT DEFAULT 0 COMMENT '成员数量',
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    founder_id BIGINT NOT NULL,
+    member_count INT DEFAULT 0,
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT(1) DEFAULT 0
 );
 
--- 志愿活动表
-CREATE TABLE volunteer_activity (
+CREATE TABLE IF NOT EXISTS volunteer_activity (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    organization_id BIGINT NOT NULL COMMENT '所属组织ID',
-    title VARCHAR(100) NOT NULL COMMENT '活动标题',
-    description TEXT COMMENT '活动描述',
-    location VARCHAR(200) COMMENT '活动地点',
-    start_time DATETIME COMMENT '开始时间',
-    end_time DATETIME COMMENT '结束时间',
-    status VARCHAR(20) DEFAULT 'ONGOING' COMMENT '活动状态：ONGOING-进行中，FINISHED-已结束',
-    participant_count INT DEFAULT 0 COMMENT '参与人数',
-    max_participants INT COMMENT '最大参与人数',
+    organization_id BIGINT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    location VARCHAR(200),
+    start_time DATETIME,
+    end_time DATETIME,
+    status VARCHAR(20) DEFAULT 'ONGOING',
+    participant_count INT DEFAULT 0,
+    max_participants INT,
     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted TINYINT(1) DEFAULT 0

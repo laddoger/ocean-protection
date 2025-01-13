@@ -21,4 +21,7 @@ public interface VolunteerService {
     VolunteerActivity getActivityDetail(Long activityId);
     void joinActivity(Long activityId, Long userId);
     void leaveActivity(Long activityId, Long userId);
+    
+    List<VolunteerOrganization> getUserOrganizations(Long userId);
+    List<VolunteerActivity> getUserActivities(Long userId);
 } 

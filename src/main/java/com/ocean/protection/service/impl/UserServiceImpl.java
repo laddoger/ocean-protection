@@ -32,6 +32,10 @@ import org.springframework.beans.BeanUtils;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Arrays;
+import com.ocean.protection.service.ForumService;
+import com.ocean.protection.service.VolunteerService;
+import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +49,10 @@ public class UserServiceImpl implements UserService {
     private final ActivityParticipantMapper activityParticipantMapper;
     private final VolunteerOrganizationMapper organizationMapper;
     private final VolunteerActivityMapper activityMapper;
+    
+    // 移除 ForumService 的依赖，改用 ApplicationContext
+    @Autowired
+    private ApplicationContext applicationContext;
 
     @Override
     public LoginResponseDTO login(LoginDTO loginDTO) {
@@ -127,32 +135,17 @@ public class UserServiceImpl implements UserService {
         UserProfileDTO profileDTO = new UserProfileDTO();
         BeanUtils.copyProperties(user, profileDTO);
 
-        // 获取用户发表的帖子
-        LambdaQueryWrapper<ForumPost> postWrapper = new LambdaQueryWrapper<>();
-        postWrapper.eq(ForumPost::getUserId, userId)
-                  .eq(ForumPost::getDeleted, false)
-                  .orderByDesc(ForumPost::getCreatedTime);
-        profileDTO.setPosts(postMapper.selectList(postWrapper));
-
+        // 通过 ApplicationContext 获取 ForumService
+        ForumService forumService = applicationContext.getBean(ForumService.class);
+        
+        // 获取用户的帖子
+        profileDTO.setPosts(forumService.getUserPosts(userId));
+        
         // 获取用户加入的组织
-        List<Long> organizationIds = organizationMemberMapper.selectList(
-            new LambdaQueryWrapper<OrganizationMember>()
-                .eq(OrganizationMember::getUserId, userId)
-        ).stream().map(OrganizationMember::getOrganizationId).collect(Collectors.toList());
+        profileDTO.setOrganizations(volunteerService.getUserOrganizations(userId));
         
-        if (!organizationIds.isEmpty()) {
-            profileDTO.setOrganizations(organizationMapper.selectBatchIds(organizationIds));
-        }
-
         // 获取用户参加的活动
-        List<Long> activityIds = activityParticipantMapper.selectList(
-            new LambdaQueryWrapper<ActivityParticipant>()
-                .eq(ActivityParticipant::getUserId, userId)
-        ).stream().map(ActivityParticipant::getActivityId).collect(Collectors.toList());
-        
-        if (!activityIds.isEmpty()) {
-            profileDTO.setActivities(activityMapper.selectBatchIds(activityIds));
-        }
+        profileDTO.setActivities(volunteerService.getUserActivities(userId));
 
         return profileDTO;
     }

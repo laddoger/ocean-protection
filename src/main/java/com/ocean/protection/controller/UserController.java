@@ -1,18 +1,19 @@
 package com.ocean.protection.controller;
 
 import com.ocean.protection.common.result.Result;
-import com.ocean.protection.dto.LoginDTO;
-import com.ocean.protection.dto.RegisterDTO;
-import com.ocean.protection.dto.LoginResponseDTO;
-import com.ocean.protection.dto.UserProfileDTO;
-import com.ocean.protection.dto.UpdateProfileDTO;
+import com.ocean.protection.dto.*;
 import com.ocean.protection.entity.User;
+import com.ocean.protection.entity.ForumPost;
+import com.ocean.protection.entity.VolunteerOrganization;
+import com.ocean.protection.entity.VolunteerActivity;
 import com.ocean.protection.service.UserService;
+import com.ocean.protection.service.ForumService;
+import com.ocean.protection.service.VolunteerService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,6 +22,8 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final ForumService forumService;
+    private final VolunteerService volunteerService;
 
     @PostMapping("/register")
     public Result<User> register(@RequestBody RegisterDTO registerDTO) {
@@ -92,6 +95,33 @@ public class UserController {
         }
         userService.updateProfile(currentUser.getId(), updateProfileDTO);
         return Result.success(null);
+    }
+
+    @GetMapping("/user/posts")
+    public Result<List<ForumPost>> getUserPosts() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(forumService.getUserPosts(currentUser.getId()));
+    }
+
+    @GetMapping("/user/organizations")
+    public Result<List<VolunteerOrganization>> getUserOrganizations() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(volunteerService.getUserOrganizations(currentUser.getId()));
+    }
+
+    @GetMapping("/user/activities")
+    public Result<List<VolunteerActivity>> getUserActivities() {
+        User currentUser = userService.getCurrentUser();
+        if (currentUser == null) {
+            return Result.error("用户未登录");
+        }
+        return Result.success(volunteerService.getUserActivities(currentUser.getId()));
     }
 
     private Long getCurrentUserId() {
