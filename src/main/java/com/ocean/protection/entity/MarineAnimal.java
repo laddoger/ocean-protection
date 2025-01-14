@@ -7,17 +7,28 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@TableName("marine_animal")
+@TableName(value = "marine_animal", excludeProperty = {"coverImage", "featured"})
 public class MarineAnimal {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String name;
-    private String scientificName;
-    private String coverImage;
-    private String description;
-    private String habitat;
-    private String conservationStatus;
-    private Boolean featured;
+    
+    @TableField("name")
+    private String name;            // 动物名称
+    
+    @TableField("scientific_name")
+    private String scientificName;  // 动物学名
+    
+    @TableField("category")
+    private String category;        // 动物类别
+    
+    @TableField("description")
+    private String description;     // 动物简介
+    
+    @TableField("conservation_status")
+    private String conservationStatus;  // 保护状态
+    
+    @TableField("habitat")
+    private String habitat;         // 栖息地
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
@@ -26,5 +37,6 @@ public class MarineAnimal {
     private LocalDateTime updatedTime;
     
     @TableLogic
+    @TableField("deleted")
     private Boolean deleted;
 } 

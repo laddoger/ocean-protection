@@ -15,9 +15,9 @@ public class MarineAnimalController {
     
     private final MarineAnimalService marineAnimalService;
 
-    @GetMapping("/featured")
-    public Result<List<MarineAnimal>> getFeatured() {
-        return Result.success(marineAnimalService.getFeaturedAnimals());
+    @GetMapping
+    public Result<List<MarineAnimal>> getAll() {
+        return Result.success(marineAnimalService.getAllAnimals());
     }
 
     @GetMapping("/search")
@@ -28,10 +28,5 @@ public class MarineAnimalController {
     @GetMapping("/{id}")
     public Result<MarineAnimal> getDetail(@PathVariable Long id) {
         return Result.success(marineAnimalService.getAnimalDetail(id));
-    }
-
-    @GetMapping
-    public Result<List<MarineAnimal>> getAll() {
-        return Result.success(marineAnimalService.getAllAnimals());
     }
 } 

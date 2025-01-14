@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ocean.protection.mapper.MarineAnimalMapper">
+    <select id="selectAllAnimals" resultType="com.ocean.protection.entity.MarineAnimal">
+        SELECT 
+            id,
+            name,
+            scientific_name,
+            category,
+            description,
+            conservation_status,
+            habitat,
+            created_time,
+            updated_time,
+            deleted
+        FROM marine_animal
+        WHERE deleted = 0
+        ORDER BY category ASC, created_time DESC
+    </select>
+
+    <select id="searchAnimals" resultType="com.ocean.protection.entity.MarineAnimal">
+        SELECT 
+            id,
+            name,
+            scientific_name,
+            category,
+            description,
+            conservation_status,
+            habitat,
+            created_time,
+            updated_time,
+            deleted
+        FROM marine_animal
+        WHERE deleted = 0
+        AND (
+            name LIKE CONCAT('%', #{keyword}, '%')
+            OR scientific_name LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%')
+            OR category LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY category ASC, created_time DESC
+    </select>
+
+    <select id="getAnimalDetail" resultType="com.ocean.protection.entity.MarineAnimal">
+        SELECT 
+            id,
+            name,
+            scientific_name,
+            category,
+            description,
+            conservation_status,
+            habitat,
+            created_time,
+            updated_time,
+            deleted
+        FROM marine_animal
+        WHERE id = #{id} AND deleted = 0
+    </select>
+</mapper> 
