@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 public class MarineAnimal {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long categoryId;
     private String name;
     private String scientificName;
     private String coverImage;
