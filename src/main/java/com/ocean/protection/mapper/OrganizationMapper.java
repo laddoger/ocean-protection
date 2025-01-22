@@ -1,17 +1,16 @@
 package com.ocean.protection.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.ocean.protection.entity.OrganizationMember;
+import com.ocean.protection.entity.Organization;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 @Mapper
-public interface OrganizationMemberMapper extends BaseMapper<OrganizationMember> {
+public interface OrganizationMapper extends BaseMapper<Organization> {
+    
     Integer countMember(@Param("organizationId") Long organizationId, 
                        @Param("userId") Long userId);
     
     void deleteMember(@Param("organizationId") Long organizationId, 
                      @Param("userId") Long userId);
-                     
-    void insertMember(OrganizationMember member);
 } 

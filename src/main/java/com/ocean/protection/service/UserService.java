@@ -22,4 +22,5 @@ public interface UserService {
      * @return 更新后的用户信息
      */
     User updateUserInfo(Long userId, String gender, Integer age, String address);
+    User getUserByUsername(String username);
 } 

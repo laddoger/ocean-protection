@@ -198,4 +198,12 @@ public class UserServiceImpl implements UserService {
         userMapper.updateById(user);
         return user;
     }
+
+    @Override
+    public User getUserByUsername(String username) {
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getUsername, username)
+                    .eq(User::getDeleted, false);
+        return baseMapper.selectOne(queryWrapper);
+    }
 } 

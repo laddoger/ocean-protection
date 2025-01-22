@@ -3,10 +3,6 @@ DELETE FROM post_comment;
 DELETE FROM post;
 DELETE FROM user;
 
--- 初始化测试用户
-INSERT INTO user (id, username, password, nickname, avatar, deleted) VALUES 
-(1, 'admin', '$2a$10$N.ZOn9G6w6e2dl2WDMB2yOtbz/E9I.OzwQPI9Z7iHQKz/BBQYry1G', '管理员', 'https://example.com/avatar.jpg', 0);
-
 -- 插入测试帖子
 INSERT INTO post (id, user_id, title, content, view_count, like_count, comment_count, deleted) VALUES 
 (1, 1, '保护海洋生态系统的重要性', '海洋生态系统对地球生命至关重要...', 100, 50, 2, 0),

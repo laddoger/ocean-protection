@@ -1,0 +1,27 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 20012001
+      MYSQL_DATABASE: ocean_protection
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - ocean_network
+
+volumes:
+  mysql_data:  # 定义数据卷，用于持久化 MySQL 数据
+
+networks:
+  ocean_network:  # 定义网络，方便服务间通信

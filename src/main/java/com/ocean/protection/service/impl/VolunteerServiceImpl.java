@@ -76,7 +76,13 @@ public class VolunteerServiceImpl implements VolunteerService {
     @Override
     @Transactional
     public void joinOrganization(Long organizationId, Long userId) {
-        // 检查是否已是成员
+        // 检查组织是否存在
+        VolunteerOrganization organization = organizationMapper.selectById(organizationId);
+        if (organization == null || organization.getDeleted()) {
+            throw new RuntimeException("组织不存在");
+        }
+        
+        // 检查是否已是活跃成员
         if (isMember(organizationId, userId)) {
             throw new RuntimeException("已经是该组织成员");
         }
@@ -85,10 +91,9 @@ public class VolunteerServiceImpl implements VolunteerService {
         member.setOrganizationId(organizationId);
         member.setUserId(userId);
         member.setRole("MEMBER");
-        memberMapper.insert(member);
+        memberMapper.insertMember(member);  // 使用 insertMember 方法处理重新加入的情况
         
         // 更新成员数量
-        VolunteerOrganization organization = organizationMapper.selectById(organizationId);
         organization.setMemberCount(organization.getMemberCount() + 1);
         organizationMapper.updateById(organization);
     }
@@ -159,7 +164,7 @@ public class VolunteerServiceImpl implements VolunteerService {
     @Transactional
     public void joinActivity(Long activityId, Long userId) {
         VolunteerActivity activity = activityMapper.selectById(activityId);
-        if (activity == null) {
+        if (activity == null || activity.getDeleted()) {
             throw new RuntimeException("活动不存在");
         }
         
@@ -179,7 +184,7 @@ public class VolunteerServiceImpl implements VolunteerService {
         ActivityParticipant participant = new ActivityParticipant();
         participant.setActivityId(activityId);
         participant.setUserId(userId);
-        participantMapper.insert(participant);
+        participantMapper.insertParticipant(participant);  // 使用新的insertParticipant方法
         
         // 更新参与人数
         activity.setParticipantCount(activity.getParticipantCount() + 1);
@@ -190,7 +195,7 @@ public class VolunteerServiceImpl implements VolunteerService {
     @Transactional
     public void leaveActivity(Long activityId, Long userId) {
         VolunteerActivity activity = activityMapper.selectById(activityId);
-        if (activity == null) {
+        if (activity == null || activity.getDeleted()) {
             throw new RuntimeException("活动不存在");
         }
         
@@ -203,13 +208,16 @@ public class VolunteerServiceImpl implements VolunteerService {
             new LambdaQueryWrapper<ActivityParticipant>()
                 .eq(ActivityParticipant::getActivityId, activityId)
                 .eq(ActivityParticipant::getUserId, userId)
+                .eq(ActivityParticipant::getDeleted, false)
         );
         
         if (participant == null) {
             throw new RuntimeException("未参加该活动");
         }
         
-        participantMapper.deleteById(participant.getId());
+        // 软删除参与记录
+        participant.setDeleted(true);
+        participantMapper.updateById(participant);
         
         // 更新参与人数
         activity.setParticipantCount(activity.getParticipantCount() - 1);
@@ -234,25 +242,28 @@ public class VolunteerServiceImpl implements VolunteerService {
             // 删除组织成员关系
             LambdaQueryWrapper<OrganizationMember> memberWrapper = new LambdaQueryWrapper<>();
             memberWrapper.eq(OrganizationMember::getOrganizationId, organizationId);
-            organizationMemberMapper.delete(memberWrapper);
+            memberMapper.delete(memberWrapper);
 
-            // 删除组织相关的活动参与记录
-            LambdaQueryWrapper<ActivityParticipant> participantWrapper = new LambdaQueryWrapper<>();
-            participantWrapper.eq(ActivityParticipant::getOrganizationId, organizationId);
-            activityParticipantMapper.delete(participantWrapper);
-
-            // 删除组织的活动
+            // 获取组织的所有活动
             LambdaQueryWrapper<VolunteerActivity> activityWrapper = new LambdaQueryWrapper<>();
             activityWrapper.eq(VolunteerActivity::getOrganizationId, organizationId);
+            List<VolunteerActivity> activities = activityMapper.selectList(activityWrapper);
+
+            // 删除活动的参与记录
+            for (VolunteerActivity activity : activities) {
+                LambdaQueryWrapper<ActivityParticipant> participantWrapper = new LambdaQueryWrapper<>();
+                participantWrapper.eq(ActivityParticipant::getActivityId, activity.getId());
+                participantMapper.delete(participantWrapper);
+            }
+
+            // 删除组织的活动
             activityMapper.delete(activityWrapper);
 
             // 最后删除组织
             organizationMapper.deleteById(organizationId);
-
-            log.info("Organization {} disbanded by user {}", organizationId, userId);
         } catch (Exception e) {
-            log.error("Error disbanding organization {}: {}", organizationId, e.getMessage());
-            throw new RuntimeException("解散组织失败：" + e.getMessage());
+            log.error("解散组织失败", e);
+            throw new RuntimeException("解散组织失败: " + e.getMessage());
         }
     }
 
@@ -326,18 +337,10 @@ public class VolunteerServiceImpl implements VolunteerService {
     }
 
     private boolean isMember(Long organizationId, Long userId) {
-        return memberMapper.selectCount(
-            new LambdaQueryWrapper<OrganizationMember>()
-                .eq(OrganizationMember::getOrganizationId, organizationId)
-                .eq(OrganizationMember::getUserId, userId)
-        ) > 0;
+        return memberMapper.countMember(organizationId, userId) > 0;
     }
 
     private boolean isParticipant(Long activityId, Long userId) {
-        return participantMapper.selectCount(
-            new LambdaQueryWrapper<ActivityParticipant>()
-                .eq(ActivityParticipant::getActivityId, activityId)
-                .eq(ActivityParticipant::getUserId, userId)
-        ) > 0;
+        return participantMapper.countParticipant(activityId, userId) > 0;
     }
 } 

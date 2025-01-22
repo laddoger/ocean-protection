@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ocean.protection.mapper.OrganizationMapper">
+    <insert id="insertMember">
+        INSERT INTO organization_member 
+        (organization_id, user_id, role) 
+        VALUES 
+        (#{organizationId}, #{userId}, #{role})
+        ON DUPLICATE KEY UPDATE deleted = 0
+    </insert>
+
+    <select id="countMember" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM organization_member
+        WHERE organization_id = #{organizationId}
+        AND user_id = #{userId}
+        AND deleted = 0
+    </select>
+
+    <update id="deleteMember">
+        UPDATE organization_member
+        SET deleted = 1
+        WHERE organization_id = #{organizationId}
+        AND user_id = #{userId}
+        AND deleted = 0
+    </update>
+</mapper> 

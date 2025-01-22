@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ocean.protection.mapper.ActivityParticipantMapper">
+    <insert id="insertParticipant">
+        INSERT INTO activity_participant 
+        (activity_id, user_id) 
+        VALUES 
+        (#{activityId}, #{userId})
+        ON DUPLICATE KEY UPDATE deleted = 0
+    </insert>
+
+    <select id="countParticipant" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM activity_participant
+        WHERE activity_id = #{activityId}
+        AND user_id = #{userId}
+        AND deleted = 0
+    </select>
+</mapper> 
