@@ -215,9 +215,8 @@ public class VolunteerServiceImpl implements VolunteerService {
             throw new RuntimeException("未参加该活动");
         }
         
-        // 软删除参与记录
-        participant.setDeleted(true);
-        participantMapper.updateById(participant);
+        // 使用 MyBatis-Plus 的逻辑删除
+        participantMapper.deleteById(participant.getId());
         
         // 更新参与人数
         activity.setParticipantCount(activity.getParticipantCount() - 1);
@@ -342,5 +341,10 @@ public class VolunteerServiceImpl implements VolunteerService {
 
     private boolean isParticipant(Long activityId, Long userId) {
         return participantMapper.countParticipant(activityId, userId) > 0;
+    }
+
+    @Override
+    public boolean checkActivityParticipation(Long activityId, Long userId) {
+        return isParticipant(activityId, userId);
     }
 } 

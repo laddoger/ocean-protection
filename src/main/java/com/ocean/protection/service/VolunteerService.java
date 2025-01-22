@@ -22,6 +22,8 @@ public interface VolunteerService {
     void joinActivity(Long activityId, Long userId);
     void leaveActivity(Long activityId, Long userId);
     
+    boolean checkActivityParticipation(Long activityId, Long userId);
+    
     List<VolunteerOrganization> getUserOrganizations(Long userId);
     List<VolunteerActivity> getUserActivities(Long userId);
 } 

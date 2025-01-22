@@ -1,6 +1,7 @@
 package com.ocean.protection.controller;
 
 import com.ocean.protection.common.result.Result;
+import com.ocean.protection.common.utils.SecurityUtils;
 import com.ocean.protection.dto.CreateOrganizationDTO;
 import com.ocean.protection.entity.*;
 import com.ocean.protection.service.UserService;
@@ -164,6 +165,18 @@ public class VolunteerController {
             return Result.success(null);
         } catch (RuntimeException e) {
             return Result.error(e.getMessage());
+        }
+    }
+
+    @GetMapping("/activities/{activityId}/participant")
+    public Result<Boolean> checkActivityParticipation(@PathVariable Long activityId) {
+        try {
+            Long userId = SecurityUtils.getLoginUserId();
+            boolean isParticipant = volunteerService.checkActivityParticipation(activityId, userId);
+            return Result.success(isParticipant);
+        } catch (Exception e) {
+            log.error("检查活动参与状态失败", e);
+            return Result.error("检查活动参与状态失败: " + e.getMessage());
         }
     }
 } 
