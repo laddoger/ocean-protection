@@ -190,7 +190,7 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     @Transactional
-    public ForumComment addComment(Long postId, Long userId, String content) {
+    public void addComment(Long postId, String content, Long userId) {
         try {
             // 创建新评论
             ForumComment comment = new ForumComment();
@@ -206,7 +206,7 @@ public class ForumServiceImpl implements ForumService {
                 LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(ForumComment::getPostId, postId)
                       .eq(ForumComment::getDeleted, false);
-                Integer commentCount = commentMapper.selectCount(wrapper);
+                int commentCount = commentMapper.selectCount(wrapper).intValue();
                 
                 // 更新帖子的评论数
                 post.setCommentCount(commentCount);
@@ -216,41 +216,42 @@ public class ForumServiceImpl implements ForumService {
             // 设置评论的用户信息
             User user = userMapper.selectById(userId);
             comment.setUser(user);
-
-            return comment;
         } catch (Exception e) {
             log.error("添加评论失败", e);
-            throw new RuntimeException("添加评论失败");
+            throw new RuntimeException("添加评论失败: " + e.getMessage());
         }
     }
 
     @Override
     @Transactional
-    public void deleteComment(Long commentId, Long userId) {
-        try {
-            ForumComment comment = commentMapper.selectById(commentId);
-            if (comment != null) {
-                // 逻辑删除评论
-                commentMapper.deleteById(commentId);
-
-                // 更新帖子的评论数
-                ForumPost post = postMapper.selectById(comment.getPostId());
-                if (post != null) {
-                    // 获取实际的评论数
-                    LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
-                    wrapper.eq(ForumComment::getPostId, comment.getPostId())
-                          .eq(ForumComment::getDeleted, false);
-                    Integer commentCount = commentMapper.selectCount(wrapper);
-                    
-                    // 更新帖子的评论数
-                    post.setCommentCount(commentCount);
-                    postMapper.updateById(post);
-                }
-            }
-        } catch (Exception e) {
-            log.error("删除评论失败", e);
-            throw new RuntimeException("删除评论失败");
+    public void deleteComment(Long postId, Long commentId, Long userId) {
+        // 检查评论是否存在
+        ForumComment comment = commentMapper.selectById(commentId);
+        if (comment == null) {
+            throw new RuntimeException("评论不存在");
         }
+
+        // 检查是否有权限删除（评论作者或帖子作者）
+        ForumPost post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new RuntimeException("帖子不存在");
+        }
+
+        if (!comment.getUserId().equals(userId) && !post.getUserId().equals(userId)) {
+            throw new RuntimeException("无权删除此评论");
+        }
+
+        // 删除评论
+        commentMapper.deleteById(commentId);
+
+        // 更新帖子的评论数
+        LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ForumComment::getPostId, postId)
+              .eq(ForumComment::getDeleted, false);
+        int commentCount = commentMapper.selectCount(wrapper).intValue();
+        
+        post.setCommentCount(commentCount);
+        postMapper.updateById(post);
     }
 
     @Override
@@ -314,7 +315,7 @@ public class ForumServiceImpl implements ForumService {
                 LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
                 wrapper.eq(ForumComment::getPostId, post.getId())
                       .eq(ForumComment::getDeleted, false);
-                Integer commentCount = commentMapper.selectCount(wrapper);
+                int commentCount = commentMapper.selectCount(wrapper).intValue();
                 
                 post.setCommentCount(commentCount);
                 postMapper.updateById(post);
