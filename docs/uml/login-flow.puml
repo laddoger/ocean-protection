@@ -1,0 +1,61 @@
+@startuml Login Flow
+
+title 海洋保护志愿者系统 - 登录流程
+
+actor User
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UserMapper" as Mapper
+participant "JwtUtils" as JWT
+database "Database" as DB
+
+== 用户登录 ==
+User -> Controller: 提交登录表单(username, password)
+Controller -> Service: login(username, password)
+Service -> Mapper: selectOne(username)
+Mapper -> DB: SELECT * FROM user WHERE username = ?
+DB --> Mapper: 用户信息
+Mapper --> Service: User对象
+
+alt 用户不存在
+    Service --> Controller: 抛出异常
+    Controller --> User: 显示"用户不存在"
+else 用户存在
+    Service -> Service: 验证密码
+    alt 密码错误
+        Service --> Controller: 抛出异常
+        Controller --> User: 显示"密码错误"
+    else 密码正确
+        Service -> JWT: generateToken(userId)
+        JWT --> Service: token
+        Service --> Controller: LoginResult(token, user)
+        Controller --> User: 登录成功，保存token
+    end
+end
+
+== 登录状态验证 ==
+User -> Controller: 请求需要认证的接口
+Controller -> JWT: validateToken(token)
+alt token有效
+    JWT --> Controller: 解析出userId
+    Controller -> Service: getCurrentUser()
+    Service -> Mapper: selectById(userId)
+    Mapper -> DB: SELECT * FROM user WHERE id = ?
+    DB --> Mapper: 用户信息
+    Mapper --> Service: User对象
+    Service --> Controller: User对象
+    Controller -> Controller: 处理业务请求
+    Controller --> User: 返回请求结果
+else token无效或过期
+    JWT --> Controller: 抛出异常
+    Controller --> User: 返回401，重定向到登录页
+end
+
+== 退出登录 ==
+User -> Controller: 点击退出登录
+Controller -> Service: logout()
+Service -> Service: 清除用户会话
+Service --> Controller: 成功
+Controller --> User: 重定向到登录页
+
+@enduml 
