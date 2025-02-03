@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import java.util.Arrays;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .csrf().disable()
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeRequests()
+            .antMatchers("/images/**").permitAll()  // 允许访问图片资源
             .antMatchers("/api/auth/login", "/api/auth/register").permitAll()
             .antMatchers("/api/auth/**").authenticated()
             .antMatchers(HttpMethod.GET, "/api/**").permitAll()

@@ -10,6 +10,7 @@
             description,
             conservation_status,
             habitat,
+            image_url,
             created_time,
             updated_time,
             deleted
@@ -27,6 +28,7 @@
             description,
             conservation_status,
             habitat,
+            image_url,
             created_time,
             updated_time,
             deleted
@@ -50,6 +52,7 @@
             description,
             conservation_status,
             habitat,
+            image_url,
             created_time,
             updated_time,
             deleted

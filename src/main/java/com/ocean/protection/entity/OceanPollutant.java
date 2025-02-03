@@ -18,6 +18,9 @@ public class OceanPollutant {
     private String harmDescription;
     private String protectionMeasures;
     
+    @TableField("image_url")
+    private String imageUrl;        // 污染物图片URL
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     

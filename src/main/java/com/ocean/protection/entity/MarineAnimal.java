@@ -30,6 +30,9 @@ public class MarineAnimal {
     @TableField("habitat")
     private String habitat;         // 栖息地
     
+    @TableField("image_url")
+    private String imageUrl;        // 动物图片URL
+    
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     

@@ -30,6 +30,11 @@ spring:
   main:
     allow-circular-references: true
 
+# 自定义配置
+app:
+  image:
+    storage-path: /Users/wang/Downloads/code/海洋动物保护/ocean-images
+
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

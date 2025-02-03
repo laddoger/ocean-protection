@@ -1,0 +1,10 @@
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/plastic.jpg' WHERE name = '塑料袋';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/pesticide.jpg' WHERE name = '农药残留';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/industrial.jpg' WHERE name = '工业废水';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/garbage.jpg' WHERE name = '生活垃圾';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/oil.jpg' WHERE name = '石油泄漏';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/radiation.jpg' WHERE name = '放射性物质';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/microplastic.jpg' WHERE name = '微塑料';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/metal.jpg' WHERE name = '重金属';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/aquaculture.jpg' WHERE name = '养殖污染';
+UPDATE ocean_pollutant SET image_url = '/images/pollutants/ship.jpg' WHERE name = '船舶废弃物'; 
