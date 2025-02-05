@@ -20,12 +20,13 @@ public class User {
     
     private Integer age;
     
+    @TableField("address")
     private String address;
     
-    @TableField(exist = false)
-    private String avatar;
+    @TableField("avatar_url")
+    private String avatarUrl;
     
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "created_time", fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     
     @TableField(fill = FieldFill.INSERT_UPDATE)

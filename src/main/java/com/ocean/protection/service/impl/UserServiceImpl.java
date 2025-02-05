@@ -206,4 +206,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     .eq(User::getDeleted, false);
         return baseMapper.selectOne(queryWrapper);
     }
+
+    @Override
+    public void updateAvatar(String avatarUrl) {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new RuntimeException("用户未登录");
+        }
+        currentUser.setAvatarUrl(avatarUrl);
+        userMapper.updateById(currentUser);
+        log.info("用户 {} 头像更新成功: {}", currentUser.getId(), avatarUrl);
+    }
+
+    @Override
+    public User getUserById(Long id) {
+        return userMapper.selectById(id);
+    }
+
+    @Override
+    public User login(String username, String password) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername, username)
+               .eq(User::getPassword, password)
+               .eq(User::getDeleted, false);
+        return userMapper.selectOne(wrapper);
+    }
 } 

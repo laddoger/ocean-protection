@@ -9,13 +9,16 @@ import com.ocean.protection.entity.VolunteerActivity;
 import com.ocean.protection.service.UserService;
 import com.ocean.protection.service.ForumService;
 import com.ocean.protection.service.VolunteerService;
+import com.ocean.protection.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class UserController {
     private final UserService userService;
     private final ForumService forumService;
     private final VolunteerService volunteerService;
+    private final FileService fileService;
 
     @PostMapping("/register")
     public Result<User> register(@RequestBody RegisterDTO registerDTO) {
@@ -73,9 +77,41 @@ public class UserController {
     }
 
     @PostMapping("/avatar")
-    public Result<String> updateAvatar(@RequestParam("file") MultipartFile file) {
-        // TODO: 实现头像上传逻辑
-        return Result.success("临时头像URL");
+    public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        try {
+            log.info("开始上传用户头像，文件名: {}, 大小: {}", file.getOriginalFilename(), file.getSize());
+            
+            // 验证文件是否为空
+            if (file.isEmpty()) {
+                return Result.error("请选择要上传的图片");
+            }
+            
+            // 验证文件类型
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                log.warn("不支持的文件类型: {}", contentType);
+                return Result.error("只能上传图片文件");
+            }
+            
+            // 验证文件大小（最大2MB）
+            if (file.getSize() > 2 * 1024 * 1024) {
+                log.warn("文件过大: {} bytes", file.getSize());
+                return Result.error("图片大小不能超过2MB");
+            }
+            
+            // 上传文件
+            String avatarUrl = fileService.uploadFile(file, "avatars");
+            log.info("文件上传成功，访问URL: {}", avatarUrl);
+            
+            // 更新用户头像
+            userService.updateAvatar(avatarUrl);
+            
+            return Result.success(avatarUrl);
+            
+        } catch (Exception e) {
+            log.error("上传头像失败", e);
+            return Result.error("上传头像失败: " + e.getMessage());
+        }
     }
 
     @GetMapping("/profile")

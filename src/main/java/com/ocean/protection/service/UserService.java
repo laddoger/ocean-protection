@@ -23,4 +23,7 @@ public interface UserService {
      */
     User updateUserInfo(Long userId, String gender, Integer age, String address);
     User getUserByUsername(String username);
+    User getUserById(Long id);
+    User login(String username, String password);
+    void updateAvatar(String avatarUrl);
 } 

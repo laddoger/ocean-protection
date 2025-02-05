@@ -31,6 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .csrf().disable()
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeRequests()
+            .antMatchers("/files/**").permitAll()  // 允许访问上传的文件
             .antMatchers("/images/**").permitAll()  // 允许访问图片资源
             .antMatchers("/api/auth/login", "/api/auth/register").permitAll()
             .antMatchers("/api/auth/**").authenticated()

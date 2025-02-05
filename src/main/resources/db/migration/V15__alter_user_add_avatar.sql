@@ -1,0 +1,2 @@
+ALTER TABLE user
+ADD COLUMN avatar_url VARCHAR(255) COMMENT '用户头像URL'; 
