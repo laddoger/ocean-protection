@@ -1,13 +1,11 @@
 package com.ocean.protection.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @TableName("post")
 public class Post {
     @TableId(type = IdType.AUTO)

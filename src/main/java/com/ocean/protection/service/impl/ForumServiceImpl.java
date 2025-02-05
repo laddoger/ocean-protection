@@ -1,6 +1,7 @@
 package com.ocean.protection.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ocean.protection.dto.CreatePostDTO;
@@ -15,8 +16,7 @@ import com.ocean.protection.mapper.UserMapper;
 import com.ocean.protection.service.ForumService;
 import com.ocean.protection.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -26,11 +26,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.ArrayList;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-public class ForumServiceImpl implements ForumService {
-
-    private static final Logger log = LoggerFactory.getLogger(ForumServiceImpl.class);
+public class ForumServiceImpl extends ServiceImpl<ForumPostMapper, ForumPost> implements ForumService {
 
     private final ForumPostMapper postMapper;
     private final ForumCommentMapper commentMapper;

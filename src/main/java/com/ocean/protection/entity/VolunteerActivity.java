@@ -12,15 +12,29 @@ import java.util.List;
 public class VolunteerActivity {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
+    @TableField("organization_id")
     private Long organizationId;
+    
     private String title;
+    
     private String description;
+    
     private String location;
+    
+    @TableField("start_time")
     private LocalDateTime startTime;
+    
+    @TableField("end_time")
     private LocalDateTime endTime;
-    private String status;
+    
+    @TableField("participant_count")
     private Integer participantCount;
+    
+    @TableField("max_participants")
     private Integer maxParticipants;
+    
+    private String status;
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
@@ -36,4 +50,15 @@ public class VolunteerActivity {
     
     @TableField(exist = false)
     private List<User> participants;
+    
+    @TableField(exist = false)
+    private Boolean isParticipant;
+    
+    public Boolean getIsParticipant() {
+        return isParticipant;
+    }
+    
+    public void setIsParticipant(Boolean isParticipant) {
+        this.isParticipant = isParticipant;
+    }
 } 

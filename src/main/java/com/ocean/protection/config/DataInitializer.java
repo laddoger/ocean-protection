@@ -120,7 +120,7 @@ public class DataInitializer implements CommandLineRunner {
         OceanPollutant pollutant = new OceanPollutant();
         pollutant.setName(name);
         pollutant.setCategory(category);
-        pollutant.setPercentage(BigDecimal.valueOf(percentage));
+        pollutant.setPercentage(Double.valueOf(percentage));
         pollutant.setHarmDescription(harmDescription);
         pollutant.setProtectionMeasures(protectionMeasures);
         pollutant.setDeleted(false);

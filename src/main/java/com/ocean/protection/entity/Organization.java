@@ -11,20 +11,25 @@ public class Organization {
     @TableId(type = IdType.AUTO)
     private Long id;
     
+    @TableField("name")
     private String name;
     
+    @TableField("description")
     private String description;
     
+    @TableField("founder_id")
     private Long founderId;
     
+    @TableField("member_count")
     private Integer memberCount;
     
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "created_time", fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     
-    @TableField(fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedTime;
     
     @TableLogic
+    @TableField("deleted")
     private Boolean deleted;
 } 

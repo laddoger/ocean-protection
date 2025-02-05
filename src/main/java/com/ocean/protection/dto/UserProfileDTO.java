@@ -1,8 +1,8 @@
 package com.ocean.protection.dto;
 
 import com.ocean.protection.entity.ForumPost;
-import com.ocean.protection.entity.VolunteerOrganization;
 import com.ocean.protection.entity.VolunteerActivity;
+import com.ocean.protection.entity.VolunteerOrganization;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;

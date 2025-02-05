@@ -1,6 +1,8 @@
 package com.ocean.protection.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ocean.protection.dto.*;
 import com.ocean.protection.entity.*;
 import com.ocean.protection.mapper.*;
@@ -9,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -17,7 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class VolunteerServiceImpl implements VolunteerService {
+public class VolunteerServiceImpl extends ServiceImpl<VolunteerOrganizationMapper, VolunteerOrganization> implements VolunteerService {
 
     private final VolunteerOrganizationMapper organizationMapper;
     private final VolunteerActivityMapper activityMapper;
@@ -25,9 +29,24 @@ public class VolunteerServiceImpl implements VolunteerService {
     private final ActivityParticipantMapper participantMapper;
     private final UserMapper userMapper;
 
+    private Long getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.isAuthenticated()) {
+                return Long.parseLong(authentication.getName());
+            }
+        } catch (Exception e) {
+            log.warn("获取当前用户ID失败", e);
+        }
+        return null;
+    }
+
     @Override
     public List<VolunteerOrganization> getAllOrganizations() {
-        return organizationMapper.selectList(new LambdaQueryWrapper<>());
+        log.info("开始查询所有组织");
+        List<VolunteerOrganization> organizations = organizationMapper.selectList(new LambdaQueryWrapper<>());
+        log.info("查询到{}个组织", organizations.size());
+        return organizations;
     }
 
     @Override
@@ -91,7 +110,7 @@ public class VolunteerServiceImpl implements VolunteerService {
         member.setOrganizationId(organizationId);
         member.setUserId(userId);
         member.setRole("MEMBER");
-        memberMapper.insertMember(member);  // 使用 insertMember 方法处理重新加入的情况
+        memberMapper.insertMember(member);  // 使用自定义的insertMember方法
         
         // 更新成员数量
         organization.setMemberCount(organization.getMemberCount() + 1);
@@ -126,28 +145,160 @@ public class VolunteerServiceImpl implements VolunteerService {
 
     @Override
     public List<VolunteerActivity> getOngoingActivities() {
-        return activityMapper.selectList(
-            new LambdaQueryWrapper<VolunteerActivity>()
+        try {
+            log.info("开始查询进行中的活动");
+            
+            // 查询活动列表
+            LambdaQueryWrapper<VolunteerActivity> queryWrapper = new LambdaQueryWrapper<VolunteerActivity>()
                 .eq(VolunteerActivity::getStatus, "ONGOING")
-        );
+                .eq(VolunteerActivity::getDeleted, false);
+                
+            log.info("执行活动查询，条件: status=ONGOING, deleted=false");
+            List<VolunteerActivity> activities = activityMapper.selectList(queryWrapper);
+            log.info("查询到{}个进行中的活动", activities.size());
+            
+            if (activities.isEmpty()) {
+                log.info("没有进行中的活动");
+                return activities;
+            }
+            
+            // 获取当前用户ID并设置参与状态
+            Long userId = getCurrentUserId();
+            log.info("当前用户ID: {}", userId);
+            
+            for (VolunteerActivity activity : activities) {
+                try {
+                    // 设置组织信息
+                    VolunteerOrganization organization = organizationMapper.selectById(activity.getOrganizationId());
+                    if (organization != null) {
+                        activity.setOrganization(organization);
+                        log.debug("活动ID: {} 设置组织信息成功", activity.getId());
+                    } else {
+                        log.warn("活动ID: {} 的组织不存在", activity.getId());
+                    }
+                    
+                    // 设置参与状态
+                    if (userId != null) {
+                        Integer participantCount = participantMapper.countParticipant(activity.getId(), userId);
+                        log.debug("活动ID: {}, 用户ID: {}, 参与计数: {}", activity.getId(), userId, participantCount);
+                        activity.setIsParticipant(participantCount != null && participantCount > 0);
+                    } else {
+                        activity.setIsParticipant(false);
+                    }
+                } catch (Exception e) {
+                    log.error("处理活动ID: {} 时发生错误", activity.getId(), e);
+                    // 继续处理下一个活动
+                }
+            }
+            
+            return activities;
+            
+        } catch (Exception e) {
+            log.error("获取进行中活动失败", e);
+            throw new RuntimeException("获取进行中活动失败: " + e.getMessage(), e);
+        }
     }
 
     @Override
     public List<VolunteerActivity> getFinishedActivities() {
-        return activityMapper.selectList(
-            new LambdaQueryWrapper<VolunteerActivity>()
+        try {
+            log.info("开始查询已结束的活动");
+            
+            // 查询活动列表
+            LambdaQueryWrapper<VolunteerActivity> queryWrapper = new LambdaQueryWrapper<VolunteerActivity>()
                 .eq(VolunteerActivity::getStatus, "FINISHED")
-        );
+                .eq(VolunteerActivity::getDeleted, false);
+                
+            log.info("执行活动查询，条件: status=FINISHED, deleted=false");
+            List<VolunteerActivity> activities = activityMapper.selectList(queryWrapper);
+            log.info("查询到{}个已结束的活动", activities.size());
+            
+            // 获取当前用户ID并设置参与状态
+            try {
+                Long userId = getCurrentUserId();
+                log.info("当前用户ID: {}", userId);
+                
+                if (userId != null) {
+                    for (VolunteerActivity activity : activities) {
+                        boolean isParticipant = checkActivityParticipation(activity.getId(), userId);
+                        activity.setIsParticipant(isParticipant);
+                        log.debug("活动ID: {}, 用户是否参与: {}", activity.getId(), isParticipant);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("设置活动参与状态时发生错误", e);
+                // 继续执行，不影响活动列表的返回
+            }
+            
+            // 填充组织信息
+            for (VolunteerActivity activity : activities) {
+                try {
+                    VolunteerOrganization organization = organizationMapper.selectById(activity.getOrganizationId());
+                    activity.setOrganization(organization);
+                    log.debug("已为活动ID: {}设置组织信息", activity.getId());
+                } catch (Exception e) {
+                    log.warn("设置活动{}的组织信息时发生错误", activity.getId(), e);
+                }
+            }
+            
+            return activities;
+            
+        } catch (Exception e) {
+            log.error("获取已结束活动失败", e);
+            throw new RuntimeException("获取已结束活动失败: " + e.getMessage());
+        }
     }
 
     @Override
     public List<VolunteerActivity> searchActivities(String keyword) {
-        return activityMapper.selectList(
-            new LambdaQueryWrapper<VolunteerActivity>()
+        try {
+            log.info("开始搜索活动，关键词：{}", keyword);
+            
+            // 查询活动列表
+            LambdaQueryWrapper<VolunteerActivity> queryWrapper = new LambdaQueryWrapper<VolunteerActivity>()
                 .like(VolunteerActivity::getTitle, keyword)
                 .or()
                 .like(VolunteerActivity::getDescription, keyword)
-        );
+                .eq(VolunteerActivity::getDeleted, false);
+                
+            log.info("执行活动搜索");
+            List<VolunteerActivity> activities = activityMapper.selectList(queryWrapper);
+            log.info("搜索到{}个活动", activities.size());
+            
+            // 获取当前用户ID并设置参与状态
+            try {
+                Long userId = getCurrentUserId();
+                log.info("当前用户ID: {}", userId);
+                
+                if (userId != null) {
+                    for (VolunteerActivity activity : activities) {
+                        boolean isParticipant = checkActivityParticipation(activity.getId(), userId);
+                        activity.setIsParticipant(isParticipant);
+                        log.debug("活动ID: {}, 用户是否参与: {}", activity.getId(), isParticipant);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("设置活动参与状态时发生错误", e);
+                // 继续执行，不影响活动列表的返回
+            }
+            
+            // 填充组织信息
+            for (VolunteerActivity activity : activities) {
+                try {
+                    VolunteerOrganization organization = organizationMapper.selectById(activity.getOrganizationId());
+                    activity.setOrganization(organization);
+                    log.debug("已为活动ID: {}设置组织信息", activity.getId());
+                } catch (Exception e) {
+                    log.warn("设置活动{}的组织信息时发生错误", activity.getId(), e);
+                }
+            }
+            
+            return activities;
+            
+        } catch (Exception e) {
+            log.error("搜索活动失败", e);
+            throw new RuntimeException("搜索活动失败: " + e.getMessage());
+        }
     }
 
     @Override
@@ -184,7 +335,7 @@ public class VolunteerServiceImpl implements VolunteerService {
         ActivityParticipant participant = new ActivityParticipant();
         participant.setActivityId(activityId);
         participant.setUserId(userId);
-        participantMapper.insertParticipant(participant);  // 使用新的insertParticipant方法
+        participantMapper.insertParticipant(participant);
         
         // 更新参与人数
         activity.setParticipantCount(activity.getParticipantCount() + 1);
@@ -194,33 +345,44 @@ public class VolunteerServiceImpl implements VolunteerService {
     @Override
     @Transactional
     public void leaveActivity(Long activityId, Long userId) {
-        VolunteerActivity activity = activityMapper.selectById(activityId);
-        if (activity == null || activity.getDeleted()) {
-            throw new RuntimeException("活动不存在");
+        try {
+            log.info("用户 {} 尝试退出活动 {}", userId, activityId);
+            
+            // 检查活动是否存在
+            VolunteerActivity activity = activityMapper.selectById(activityId);
+            if (activity == null || activity.getDeleted()) {
+                throw new RuntimeException("活动不存在");
+            }
+            
+            if ("FINISHED".equals(activity.getStatus())) {
+                throw new RuntimeException("活动已结束");
+            }
+            
+            // 检查是否已参加
+            LambdaQueryWrapper<ActivityParticipant> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(ActivityParticipant::getActivityId, activityId)
+                  .eq(ActivityParticipant::getUserId, userId)
+                  .eq(ActivityParticipant::getDeleted, false);
+            
+            ActivityParticipant participant = participantMapper.selectOne(wrapper);
+            
+            if (participant == null) {
+                throw new RuntimeException("未参加该活动");
+            }
+            
+            // 使用逻辑删除
+            log.info("删除用户 {} 在活动 {} 中的参与记录", userId, activityId);
+            participantMapper.deleteById(participant.getId());
+            
+            // 更新参与人数
+            activity.setParticipantCount(activity.getParticipantCount() - 1);
+            activityMapper.updateById(activity);
+            
+            log.info("用户 {} 成功退出活动 {}", userId, activityId);
+        } catch (Exception e) {
+            log.error("用户 {} 退出活动 {} 失败", userId, activityId, e);
+            throw new RuntimeException("退出活动失败: " + e.getMessage());
         }
-        
-        if ("FINISHED".equals(activity.getStatus())) {
-            throw new RuntimeException("活动已结束");
-        }
-        
-        // 检查是否已参加
-        ActivityParticipant participant = participantMapper.selectOne(
-            new LambdaQueryWrapper<ActivityParticipant>()
-                .eq(ActivityParticipant::getActivityId, activityId)
-                .eq(ActivityParticipant::getUserId, userId)
-                .eq(ActivityParticipant::getDeleted, false)
-        );
-        
-        if (participant == null) {
-            throw new RuntimeException("未参加该活动");
-        }
-        
-        // 使用 MyBatis-Plus 的逻辑删除
-        participantMapper.deleteById(participant.getId());
-        
-        // 更新参与人数
-        activity.setParticipantCount(activity.getParticipantCount() - 1);
-        activityMapper.updateById(activity);
     }
 
     @Override
@@ -335,8 +497,18 @@ public class VolunteerServiceImpl implements VolunteerService {
         return activities;
     }
 
-    private boolean isMember(Long organizationId, Long userId) {
-        return memberMapper.countMember(organizationId, userId) > 0;
+    @Override
+    public boolean isMember(Long organizationId, Long userId) {
+        VolunteerOrganization organization = organizationMapper.selectById(organizationId);
+        if (organization == null) {
+            return false;
+        }
+        
+        QueryWrapper<OrganizationMember> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("organization_id", organizationId)
+                   .eq("user_id", userId);
+        
+        return memberMapper.selectCount(queryWrapper) > 0;
     }
 
     private boolean isParticipant(Long activityId, Long userId) {

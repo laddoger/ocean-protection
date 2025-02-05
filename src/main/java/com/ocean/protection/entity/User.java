@@ -11,12 +11,16 @@ import java.time.LocalDateTime;
 public class User {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
     private String username;
+    
     private String password;
     
-    private String gender = "未设置";
-    private Integer age = 0;
-    private String address = "未设置";
+    private String gender;
+    
+    private Integer age;
+    
+    private String address;
     
     @TableField(exist = false)
     private String avatar;

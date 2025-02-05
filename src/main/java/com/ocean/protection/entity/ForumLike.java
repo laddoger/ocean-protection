@@ -1,20 +1,21 @@
 package com.ocean.protection.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
 @TableName("forum_like")
 public class ForumLike {
     @TableId(type = IdType.AUTO)
     private Long id;
     
+    @TableField("post_id")
     private Long postId;
+    
+    @TableField("user_id")
     private Long userId;
     
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(exist = false)
     private LocalDateTime createdTime;
 } 

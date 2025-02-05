@@ -1,18 +1,19 @@
 package com.ocean.protection.service.impl;
 
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ocean.protection.entity.MarineAnimal;
 import com.ocean.protection.mapper.MarineAnimalMapper;
 import com.ocean.protection.service.MarineAnimalService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
-public class MarineAnimalServiceImpl implements MarineAnimalService {
+public class MarineAnimalServiceImpl extends ServiceImpl<MarineAnimalMapper, MarineAnimal> implements MarineAnimalService {
     
-    private final MarineAnimalMapper marineAnimalMapper;
+    @Autowired
+    private MarineAnimalMapper marineAnimalMapper;
 
     @Override
     public List<MarineAnimal> getAllAnimals() {

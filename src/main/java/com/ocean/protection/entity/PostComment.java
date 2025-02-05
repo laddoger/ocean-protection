@@ -11,8 +11,13 @@ import java.time.LocalDateTime;
 public class PostComment {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
+    @TableField("post_id")
     private Long postId;
+    
+    @TableField("user_id")
     private Long userId;
+    
     private String content;
     
     @TableField(fill = FieldFill.INSERT)
@@ -26,4 +31,7 @@ public class PostComment {
 
     @TableField(exist = false)
     private User user;
+    
+    @TableField(exist = false)
+    private ForumPost post;
 } 

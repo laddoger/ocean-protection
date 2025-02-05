@@ -25,10 +25,12 @@ public class VolunteerController {
     @GetMapping("/organizations")
     public Result<List<VolunteerOrganization>> getOrganizations() {
         try {
-            return Result.success(volunteerService.getAllOrganizations());
+            List<VolunteerOrganization> organizations = volunteerService.getAllOrganizations();
+            log.info("成功获取组织列表，数量: {}", organizations.size());
+            return Result.success(organizations);
         } catch (Exception e) {
-            log.error("获取组织列表失败", e);
-            return Result.error("获取组织列表失败");
+            log.error("获取组织列表失败，错误信息: {}", e.getMessage(), e);
+            return Result.error("获取组织列表失败: " + e.getMessage());
         }
     }
 
@@ -112,14 +114,30 @@ public class VolunteerController {
         }
     }
 
+    @GetMapping("/organizations/{organizationId}/membership")
+    public Result<Boolean> checkMembership(@PathVariable Long organizationId) {
+        try {
+            Long userId = SecurityUtils.getLoginUserId();
+            boolean isMember = volunteerService.isMember(organizationId, userId);
+            log.info("检查用户 {} 是否是组织 {} 的成员: {}", userId, organizationId, isMember);
+            return Result.success(isMember);
+        } catch (Exception e) {
+            log.error("检查组织成员状态失败", e);
+            return Result.error("检查组织成员状态失败: " + e.getMessage());
+        }
+    }
+
     // 活动相关接口
     @GetMapping("/activities/ongoing")
     public Result<List<VolunteerActivity>> getOngoingActivities() {
         try {
-            return Result.success(volunteerService.getOngoingActivities());
+            log.info("开始获取进行中的活动");
+            List<VolunteerActivity> activities = volunteerService.getOngoingActivities();
+            log.info("成功获取进行中的活动，数量: {}", activities.size());
+            return Result.success(activities);
         } catch (Exception e) {
-            log.error("获取进行中活动失败", e);
-            return Result.error("获取进行中活动失败");
+            log.error("获取进行中活动失败: {}", e.getMessage(), e);
+            return Result.error("获取进行中活动失败: " + e.getMessage());
         }
     }
 
@@ -135,7 +153,19 @@ public class VolunteerController {
 
     @GetMapping("/activities/{id}")
     public Result<VolunteerActivity> getActivityDetail(@PathVariable Long id) {
-        return Result.success(volunteerService.getActivityDetail(id));
+        try {
+            VolunteerActivity activity = volunteerService.getActivityDetail(id);
+            if (activity != null) {
+                Long userId = SecurityUtils.getLoginUserId();
+                if (userId != null) {
+                    activity.setIsParticipant(volunteerService.checkActivityParticipation(id, userId));
+                }
+            }
+            return Result.success(activity);
+        } catch (Exception e) {
+            log.error("获取活动详情失败", e);
+            return Result.error("获取活动详情失败: " + e.getMessage());
+        }
     }
 
     @PostMapping("/activities/{id}/join")
@@ -168,14 +198,19 @@ public class VolunteerController {
         }
     }
 
-    @GetMapping("/activities/{activityId}/participant")
+    @GetMapping("/activities/{activityId}/participation")
     public Result<Boolean> checkActivityParticipation(@PathVariable Long activityId) {
         try {
+            log.info("检查活动参与状态，活动ID: {}", activityId);
             Long userId = SecurityUtils.getLoginUserId();
+            log.info("当前用户ID: {}", userId);
+            
             boolean isParticipant = volunteerService.checkActivityParticipation(activityId, userId);
+            log.info("用户 {} 是否参与活动 {}: {}", userId, activityId, isParticipant);
+            
             return Result.success(isParticipant);
         } catch (Exception e) {
-            log.error("检查活动参与状态失败", e);
+            log.error("检查活动参与状态失败，活动ID: {}", activityId, e);
             return Result.error("检查活动参与状态失败: " + e.getMessage());
         }
     }

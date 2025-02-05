@@ -7,11 +7,6 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface OrganizationMemberMapper extends BaseMapper<OrganizationMember> {
-    Integer countMember(@Param("organizationId") Long organizationId, 
-                       @Param("userId") Long userId);
-    
-    void deleteMember(@Param("organizationId") Long organizationId, 
-                     @Param("userId") Long userId);
-                     
+    Integer countMember(@Param("organizationId") Long organizationId, @Param("userId") Long userId);
     void insertMember(OrganizationMember member);
 } 

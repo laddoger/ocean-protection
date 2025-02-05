@@ -14,6 +14,8 @@ public interface VolunteerService {
     void leaveOrganization(Long organizationId, Long userId);
     void disbandOrganization(Long organizationId, Long userId);
     
+    boolean isMember(Long organizationId, Long userId);
+    
     // 活动相关
     List<VolunteerActivity> getOngoingActivities();
     List<VolunteerActivity> getFinishedActivities();

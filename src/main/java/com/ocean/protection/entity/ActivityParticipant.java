@@ -11,13 +11,28 @@ import java.time.LocalDateTime;
 public class ActivityParticipant {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
+    @TableField("activity_id")
     private Long activityId;
+    
+    @TableField("user_id")
     private Long userId;
+    
+    @TableField("join_time")
     private LocalDateTime joinTime;
+    
+    @TableField(value = "created_time", fill = FieldFill.INSERT)
+    private LocalDateTime createdTime;
+    
+    @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedTime;
     
     @TableLogic
     private Boolean deleted;
     
     @TableField(exist = false)
     private User user;
+    
+    @TableField(exist = false)
+    private VolunteerActivity activity;
 } 

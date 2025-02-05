@@ -12,10 +12,17 @@ import java.math.BigDecimal;
 public class OceanPollutant {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
     private String name;
+    
     private String category;
-    private BigDecimal percentage;
+    
+    private Double percentage;
+    
+    @TableField("harm_description")
     private String harmDescription;
+    
+    @TableField("protection_measures")
     private String protectionMeasures;
     
     @TableField("image_url")

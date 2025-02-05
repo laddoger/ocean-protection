@@ -12,10 +12,25 @@ import java.util.List;
 public class VolunteerOrganization {
     @TableId(type = IdType.AUTO)
     private Long id;
+    
     private String name;
+    
     private String description;
-    private Long founderId;
+    
+    @TableField(exist = false)
+    private String location;
+    
+    @TableField(exist = false)
+    private String contactInfo;
+    
+    @TableField("member_count")
     private Integer memberCount;
+    
+    @TableField(exist = false)
+    private String imageUrl;
+    
+    @TableField("founder_id")
+    private Long founderId;
     
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
@@ -27,8 +42,11 @@ public class VolunteerOrganization {
     private Boolean deleted;
     
     @TableField(exist = false)
-    private User founder;
+    private List<User> members;
     
     @TableField(exist = false)
     private List<VolunteerActivity> activities;
+    
+    @TableField(exist = false)
+    private User founder;
 } 

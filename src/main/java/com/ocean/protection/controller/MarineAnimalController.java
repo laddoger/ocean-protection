@@ -3,17 +3,17 @@ package com.ocean.protection.controller;
 import com.ocean.protection.common.result.Result;
 import com.ocean.protection.entity.MarineAnimal;
 import com.ocean.protection.service.MarineAnimalService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/animals")
-@RequiredArgsConstructor
 public class MarineAnimalController {
     
-    private final MarineAnimalService marineAnimalService;
+    @Autowired
+    private MarineAnimalService marineAnimalService;
 
     @GetMapping
     public Result<List<MarineAnimal>> getAll() {

@@ -1,13 +1,12 @@
 package com.ocean.protection.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.ocean.protection.dto.LoginDTO;
-import com.ocean.protection.dto.RegisterDTO;
-import com.ocean.protection.entity.User;
-import com.ocean.protection.mapper.UserMapper;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ocean.protection.dto.*;
+import com.ocean.protection.entity.*;
+import com.ocean.protection.mapper.*;
 import com.ocean.protection.service.UserService;
 import com.ocean.protection.util.JwtUtil;
-import com.ocean.protection.dto.LoginResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,10 +36,10 @@ import com.ocean.protection.service.VolunteerService;
 import org.springframework.context.ApplicationContext;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
@@ -49,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final ActivityParticipantMapper activityParticipantMapper;
     private final VolunteerOrganizationMapper organizationMapper;
     private final VolunteerActivityMapper activityMapper;
+    private final VolunteerService volunteerService;
     
     // 移除 ForumService 的依赖，改用 ApplicationContext
     @Autowired

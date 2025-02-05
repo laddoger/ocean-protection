@@ -23,6 +23,9 @@ public class ForumComment {
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
     
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedTime;
+    
     @TableLogic
     private Boolean deleted;
     
