@@ -1,0 +1,2 @@
+ALTER TABLE post
+ADD COLUMN image_url VARCHAR(255) COMMENT '帖子图片URL'; 

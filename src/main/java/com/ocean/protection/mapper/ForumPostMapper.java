@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ocean.protection.entity.ForumPost;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 @Mapper
@@ -15,4 +17,6 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
            "WHERE p.deleted = 0 " +
            "ORDER BY p.created_time DESC")
     List<ForumPost> selectAllPosts();
+
+    List<ForumPost> selectByUserId(@Param("userId") Long userId);
 } 

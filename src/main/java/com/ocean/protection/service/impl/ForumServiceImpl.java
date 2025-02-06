@@ -13,6 +13,7 @@ import com.ocean.protection.mapper.ForumCommentMapper;
 import com.ocean.protection.mapper.ForumLikeMapper;
 import com.ocean.protection.mapper.ForumPostMapper;
 import com.ocean.protection.mapper.UserMapper;
+import com.ocean.protection.service.FileService;
 import com.ocean.protection.service.ForumService;
 import com.ocean.protection.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class ForumServiceImpl extends ServiceImpl<ForumPostMapper, ForumPost> im
     private final ForumLikeMapper likeMapper;
     private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
+    private final FileService fileService;
     
     @Autowired
     private ApplicationContext applicationContext;
@@ -93,21 +95,33 @@ public class ForumServiceImpl extends ServiceImpl<ForumPostMapper, ForumPost> im
     @Override
     @Transactional
     public ForumPost createPost(CreatePostDTO createPostDTO, Long userId) {
-        ForumPost post = new ForumPost();
-        post.setUserId(userId);
-        post.setTitle(createPostDTO.getTitle());
-        post.setContent(createPostDTO.getContent());
-        post.setViewCount(0);
-        post.setLikeCount(0);
-        post.setCommentCount(0);
-        
-        postMapper.insert(post);
-
-        // 设置用户信息
-        User user = userMapper.selectById(userId);
-        post.setUser(user);
-        
-        return post;
+        try {
+            ForumPost post = new ForumPost();
+            post.setUserId(userId);
+            post.setTitle(createPostDTO.getTitle());
+            post.setContent(createPostDTO.getContent());
+            post.setViewCount(0);
+            post.setLikeCount(0);
+            post.setCommentCount(0);
+            
+            // 处理图片上传
+            if (createPostDTO.getImage() != null) {
+                String imageUrl = fileService.uploadFile(createPostDTO.getImage(), "posts");
+                post.setImageUrl(imageUrl);
+                log.info("帖子图片上传成功: {}", imageUrl);
+            }
+            
+            postMapper.insert(post);
+            
+            // 设置用户信息
+            User user = userMapper.selectById(userId);
+            post.setUser(user);
+            
+            return post;
+        } catch (Exception e) {
+            log.error("创建帖子失败", e);
+            throw new RuntimeException("创建帖子失败: " + e.getMessage());
+        }
     }
 
     @Override
@@ -124,61 +138,78 @@ public class ForumServiceImpl extends ServiceImpl<ForumPostMapper, ForumPost> im
             throw new RuntimeException("无权修改此帖子");
         }
         
-        // 更新帖子内容
-        post.setTitle(updatePostDTO.getTitle());
-        post.setContent(updatePostDTO.getContent());
-        if (updatePostDTO.getTag() != null) {
-            post.setTag(updatePostDTO.getTag());
-        }
-        
-        // 处理图片
-        if (updatePostDTO.getImages() != null && !updatePostDTO.getImages().isEmpty()) {
-            try {
-                post.setImagesJson(objectMapper.writeValueAsString(updatePostDTO.getImages()));
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("图片处理失败", e);
+        try {
+            // 更新帖子内容
+            post.setTitle(updatePostDTO.getTitle());
+            post.setContent(updatePostDTO.getContent());
+            if (updatePostDTO.getTag() != null) {
+                post.setTag(updatePostDTO.getTag());
             }
+            
+            // 处理图片更新
+            if (updatePostDTO.getImage() != null) {
+                String imageUrl = fileService.uploadFile(updatePostDTO.getImage(), "posts");
+                post.setImageUrl(imageUrl);
+                log.info("帖子图片更新成功: {}", imageUrl);
+            }
+            
+            // 更新数据库
+            postMapper.updateById(post);
+            
+            // 重新获取完整的帖子信息
+            post = getPost(id);
+            
+            // 设置用户信息
+            User user = userMapper.selectById(post.getUserId());
+            post.setUser(user);
+            
+            return post;
+        } catch (Exception e) {
+            log.error("更新帖子失败", e);
+            throw new RuntimeException("更新帖子失败: " + e.getMessage());
         }
-        
-        // 更新数据库
-        postMapper.updateById(post);
-        
-        // 重新获取完整的帖子信息
-        post = getPost(id);
-        
-        // 设置用户信息
-        User user = userMapper.selectById(post.getUserId());
-        post.setUser(user);
-        
-        return post;
     }
 
     @Override
     @Transactional
     public void deletePost(Long id, Long userId) {
-        // 检查帖子是否存在
-        ForumPost post = postMapper.selectById(id);
-        if (post == null) {
-            throw new RuntimeException("帖子不存在");
+        try {
+            log.info("开始删除帖子，帖子ID: {}, 用户ID: {}", id, userId);
+            
+            // 检查帖子是否存在
+            ForumPost post = postMapper.selectById(id);
+            if (post == null) {
+                throw new RuntimeException("帖子不存在");
+            }
+            
+            // 检查是否有权限删除
+            if (!post.getUserId().equals(userId)) {
+                throw new RuntimeException("无权删除此帖子");
+            }
+            
+            // 删除相关的评论
+            LambdaQueryWrapper<ForumComment> commentWrapper = new LambdaQueryWrapper<>();
+            commentWrapper.eq(ForumComment::getPostId, id);
+            commentMapper.delete(commentWrapper);
+            log.info("已删除帖子相关评论");
+            
+            // 删除相关的点赞
+            LambdaQueryWrapper<ForumLike> likeWrapper = new LambdaQueryWrapper<>();
+            likeWrapper.eq(ForumLike::getPostId, id);
+            likeMapper.delete(likeWrapper);
+            log.info("已删除帖子相关点赞");
+            
+            // 删除帖子
+            int result = postMapper.deleteById(id);
+            if (result > 0) {
+                log.info("帖子删除成功");
+            } else {
+                throw new RuntimeException("帖子删除失败");
+            }
+        } catch (Exception e) {
+            log.error("删除帖子失败", e);
+            throw new RuntimeException("删除帖子失败: " + e.getMessage());
         }
-        
-        // 检查是否有权限删除
-        if (!post.getUserId().equals(userId)) {
-            throw new RuntimeException("无权删除此帖子");
-        }
-        
-        // 删除相关的评论
-        LambdaQueryWrapper<ForumComment> commentWrapper = new LambdaQueryWrapper<>();
-        commentWrapper.eq(ForumComment::getPostId, id);
-        commentMapper.delete(commentWrapper);
-        
-        // 删除相关的点赞
-        LambdaQueryWrapper<ForumLike> likeWrapper = new LambdaQueryWrapper<>();
-        likeWrapper.eq(ForumLike::getPostId, id);
-        likeMapper.delete(likeWrapper);
-        
-        // 删除帖子
-        postMapper.deleteById(id);
     }
 
     @Override
